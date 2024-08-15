@@ -1,0 +1,30 @@
+{
+    "classes": [
+        "aphid",
+        "brown_rust",
+        "healthy",
+        "septoria",
+        "yellow_rust"
+    ],
+    "mode": "classification",
+    "printHWInfo": false,
+    "inputShapeString": "(160, 160, 3)",
+    "yType": "npy",
+    "trainTestSplit": 0.2,
+    "stratifiedTrainTest": false,
+    "convertInt8": true,
+    "profileInt8": true,
+    "skipEmbeddingsAndMemory": false,
+    "objectDetectionAugmentation": true,
+    "syntiantTarget": false,
+    "maxTrainingTimeSeconds": 1200,
+    "remainingGpuComputeTimeSeconds": null,
+    "isEnterpriseProject": false,
+    "flattenDataset": false,
+    "akidaModel": false,
+    "akidaEdgeModel": false,
+    "skipMemoryProfiling": false,
+    "tensorboardLogging": false,
+    "customValidationSplit": false,
+    "asyncMemoryProfiling": true
+}

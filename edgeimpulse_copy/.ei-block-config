@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "config": {
+        "localhost": {
+            "type": "transferLearning",
+            "organizationId": 143210,
+            "tlOperatesOn": "image"
+        }
+    }
+}
