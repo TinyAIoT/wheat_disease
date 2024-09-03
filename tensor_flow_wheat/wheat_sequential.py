@@ -19,10 +19,12 @@ from keras.optimizers import Adam
 from keras.losses import categorical_crossentropy
 import sys
 from sklearn.utils import class_weight
+# additional callbacks and tflite functions
 from callbacks import BatchLoggerCallback
+from tflite_functions import convert_tflite_model,save_tflite_model,test_tflite
 
-# create model , compile
-def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name,work_dir):
+# create model, compile
+def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name):
     model = Sequential()
     model.add(InputLayer(input_shape=input_shape, name='x_input'))
     # Don't include the base model's top layers
@@ -61,7 +63,6 @@ def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name,
 # path_name
 model_name = "mobile_net_v2"
 data_folder = r"D:\TinyAIoT\Wheat_Disease\dataset4\Long 2023 Plant Path 999 photos"
-work_dir = r"D:\TinyAIoT\tinyai_repo_wheat\wheat_disease\tensor_flow_wheat"
 IMAGE_HEIGHT= 160
 IMAGE_WIDTH= 160
 # Input shape
@@ -137,7 +138,7 @@ num_classes = len(set_class_names)
 print("num_classes",num_classes)
 
 # create model with prev. defined function
-model=create_model(INPUT_SHAPE,base_model,num_classes,True,model_name,work_dir)
+model=create_model(INPUT_SHAPE,base_model,num_classes,True,model_name)
 # train_sample_count ?
 train_sample_count = 800
 

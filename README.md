@@ -1,12 +1,23 @@
 # Wheat Diseas Detection
 
-## data 
+## from Scratch in /tensor_flow_wheat
+
+### Sequential model 
+
+-train with wheat_sequential.py
+-uses Mobile Net V2 as base model
+-data found in sciebo in /Use cases/Landwirtschaft/wheat_disease_raw_data
+
+
+
+## Edge Impulse Copy
+### data 
 Y_split already in /data. 
 X_split can be downloaded from sciebo in Use cases/Landwirtschaft/edge_impulse_train_data
 
-## create conda env ( cd to edgeimpulse_copy)
+### create conda env ( cd to edgeimpulse_copy)
 
-## On Palma
+### On Palma
 
 salloc --nodes 1 --cpus-per-task 8 -t 03:00:00 --mem 32G --gres gpu:1 --partition gpuexpress
 
@@ -20,11 +31,11 @@ conda env create -f ./wheat_dis_env.yaml -n ENV_NAME
 
 conda activate ENV_NAME
 
-## train.py : add full paths 
+### train.py : add full paths 
 python ./train.py --data-directory "./data" --out-directory "./output"
 
 
-## finding akida
+### finding akida
 akida is imported in resources/libraries/ei_tensorflow/brainchip/edge_learning.py and model.py
 
 module load palma/2023a  GCCcore/12.3.0 Python/3.11.3    kein akida
