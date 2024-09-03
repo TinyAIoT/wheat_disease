@@ -40,10 +40,10 @@ class BatchLoggerCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         self.last_log_time = time.time()
 
-
+# Image dimensions
 IMAGE_HEIGHT= 160
 IMAGE_WIDTH= 160
-
+# Input shape
 INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, 3)
 
 #WEIGHTS_PATH = r"D:\TinyAIoT\Wheat_Disease\mobile_netv2_weights\mobilenet_v2_weights_tf_dim_ordering_tf_kernels_1.0_160.h5"
@@ -130,7 +130,7 @@ model = Sequential([
     #error  reshaping:
     #total size of new array must be unchanged, input_shape = [160, 160, 3], output_shape = [300, 160, 160, 3]
 #layers.Reshape((BATCH_SIZE,160,160,3), input_shape=(160,160,3)),
-layers.Rescaling(1./255, input_shape=(IMAGE_HEIGHT, IMAGE_WIDTH, 3)),
+layers.Rescaling(1./255, input_shape=INPUT_SHAPE),
   layers.Conv2D(16, 3, padding='same', activation='relu'),
   layers.MaxPooling2D(),
   layers.Conv2D(32, 3, padding='same', activation='relu'),
