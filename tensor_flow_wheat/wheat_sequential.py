@@ -1,11 +1,12 @@
 import math, requests
+import os
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 from pathlib import Path
 import tensorflow as tf
 from tensorflow import Tensor
 from keras.callbacks import EarlyStopping
 from keras import Model, utils , callbacks
 import random
-import os
 import numpy as np
 import time
 from keras.models import Sequential
@@ -23,6 +24,9 @@ from sklearn.utils import class_weight
 from callbacks import BatchLoggerCallback
 from tflite_functions import convert_tflite_model,save_tflite_model,test_tflite
 
+
+#tf.logging.set_verbosity(tf.logging.ERROR)
+tf.get_logger().setLevel('WARN')
 # create model, compile
 def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name):
     model = Sequential()
@@ -100,7 +104,7 @@ def augment_image(image, label):
     return image, label
 
 # batch size
-BATCH_SIZE =  64
+BATCH_SIZE =  128
 # get dataset from directory
 set_class_names = ["brown_rust","healthy","mildew","septoria","yellow_rust"]
 
@@ -124,7 +128,7 @@ for images, labels  in train_ds.unbatch():
     y_train.append(labels.numpy())
 
 # epochs and learning rate
-EPOCHS =  10
+EPOCHS =  1
 LEARNING_RATE =  0.002
 #print(train_ds)
 # Autotune
@@ -139,9 +143,13 @@ print("num_classes",num_classes)
 
 # create model with prev. defined function
 model=create_model(INPUT_SHAPE,base_model,num_classes,True,model_name)
-# train_sample_count ?
-train_sample_count = 800
 
+
+# train_sample_count ?
+print("card",train_ds.cardinality().numpy())
+
+train_sample_count = train_ds.cardinality().numpy()
+train_sample_count = math.ceil(train_sample_count) 
 # callbacks
 model_callbacks =[]
 # BatchLoggerCallback
@@ -154,23 +162,57 @@ model_callbacks.append(EarlyStopping(
     verbose=1,                 # Print messages
     restore_best_weights=True  # Restore model weights from the epoch with the best value of the monitored quantity.
 ))
+# Create a callback that saves the model's weights
+
+
+checkpoint_path = os.path.join(os.path.dirname(__file__),"training_checkpoints_1\cp-{epoch:04d}.ckpt")
+checkpoint_dir = os.path.dirname(checkpoint_path)
+print("checkpoint_path",checkpoint_path)
+
+if not os.path.exists(checkpoint_dir):
+    os.makedirs(checkpoint_dir)
+cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                 save_weights_only=True,
+                                                 monitor="val_loss",
+                                                 verbose=1,
+                                                 save_freq="epoch",
+                                                 save_best_only=True)
+model_callbacks.append(cp_callback)
 
 #model.summary()
 # class weights
 print("np.unique(y_train):",np.unique(y_train))
-#print("y_train",y_train)
 weights = class_weight.compute_class_weight('balanced',
                                                  classes= np.unique(y_train),
                                                 y= y_train)
 weights = {i : weights[i] for i in range(5)}
 print("classweights",weights)
+
 # fit model
 history = model.fit(
   train_ds,
   validation_data=val_ds,
-  epochs=EPOCHS,
-  class_weight=weights
+  epochs=EPOCHS,    
+  class_weight=weights,
+  callbacks=model_callbacks
 )
+print(f"checkpoints in {checkpoint_dir} ",os.listdir(checkpoint_dir))
+
+# path for saving
+keras_save_path= os.path.join(os.path.dirname(__file__),"keras_"+model_name,"model.keras")
+# save keras model
+model.save(keras_save_path)
+
+# load model after saving
+keras_model = tf.keras.models.load_model(keras_save_path)
+
+# convert tflite
+print("model to be converted:",keras_model)
+
+tflite_model = convert_tflite_model(keras_model)
+
+# save tflite
+#save_tflite_model(tflite_model, './training/models/'+model_name, '/model.tflite')
 
 print('')
 print('Initial training done.', flush=True)

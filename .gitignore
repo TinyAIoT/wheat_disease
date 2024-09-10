@@ -1,2 +1,5 @@
 /edgeimpulse_copy/data/X_split_test.npy
 /edgeimpulse_copy/data/X_split_train.npy
+notes.txt
+test_local.py
+/tensor_flow_wheat/training_checkpoints_1/

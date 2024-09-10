@@ -4,15 +4,22 @@ import numpy as np
 
 # Convert model to tflite
 def convert_tflite_model(model):
-	converter = tf.lite.TFLiteConverter.from_keras_model(model)
-	tflite_model = converter.convert()
-	return tflite_model
+    print("Converting ....")
+    converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
+    
+    tflite_model = converter.convert()
+    print("Converted ....")
+    return tflite_model
 
 def save_tflite_model(tflite_model, save_dir, model_name):
+	print("Saving ...")
 	import os
 	if not os.path.exists(save_dir):
 		os.makedirs(save_dir)
 	save_path = os.path.join(save_dir, model_name)
+	print("Tflite save path:",save_path)
 	with open(save_path, "wb") as f:
 		f.write(tflite_model)
 	print("Tflite model saved to %s", save_dir)
