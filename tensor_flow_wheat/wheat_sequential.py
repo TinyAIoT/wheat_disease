@@ -6,19 +6,15 @@ import tensorflow as tf
 from tensorflow import Tensor
 from keras.callbacks import EarlyStopping
 from keras import Model, utils , callbacks
-import random
 import numpy as np
-import time
 from keras.models import Sequential
 from keras.applications import MobileNetV2
-from keras import layers, metrics
+#from keras import layers, metrics
 from keras.layers import (
-    Dense, InputLayer, Dropout, Conv1D, Flatten, Reshape, MaxPooling1D, BatchNormalization,
-    Conv2D, GlobalMaxPooling2D,MaxPooling2D, Lambda, GlobalAveragePooling2D, Input,Rescaling)
-from keras.optimizers.legacy import adadelta
+    Dense, InputLayer, Dropout, Flatten, Reshape)
+#from keras.optimizers.legacy import adadelta
 from keras.optimizers import Adam
 from keras.losses import categorical_crossentropy
-import sys
 from sklearn.utils import class_weight
 # additional callbacks and tflite functions
 from callbacks import BatchLoggerCallback
@@ -28,6 +24,7 @@ from tflite_functions import convert_tflite_model,save_tflite_model,test_tflite
 #tf.logging.set_verbosity(tf.logging.ERROR)
 tf.get_logger().setLevel('WARN')
 # create model, compile
+# change model_name if necessary
 def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name):
     model = Sequential()
     model.add(InputLayer(input_shape=input_shape, name='x_input'))
@@ -59,8 +56,8 @@ def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name)
                 show_shapes=True,
             )
     # print layer shapes
-    for layer in model.layers:
-        print(layer.name ,layer.input_shape, "---->", layer.output_shape)
+    #for layer in model.layers:
+    #    print(layer.name ,layer.input_shape, "---->", layer.output_shape)
     return model
 
 # Image dimensions
@@ -165,7 +162,7 @@ model_callbacks.append(EarlyStopping(
 # Create a callback that saves the model's weights
 
 
-checkpoint_path = os.path.join(os.path.dirname(__file__),"training_checkpoints_1\cp-{epoch:04d}.ckpt")
+checkpoint_path = os.path.join(os.path.dirname(__file__),"training_checkpoints_1\cp-{epoch:04d}.weights.h5")
 checkpoint_dir = os.path.dirname(checkpoint_path)
 print("checkpoint_path",checkpoint_path)
 
@@ -179,14 +176,16 @@ cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                  save_best_only=True)
 model_callbacks.append(cp_callback)
 
-#model.summary()
+model.summary()
 # class weights
 print("np.unique(y_train):",np.unique(y_train))
 weights = class_weight.compute_class_weight('balanced',
                                                  classes= np.unique(y_train),
                                                 y= y_train)
 weights = {i : weights[i] for i in range(5)}
-print("classweights",weights)
+print("classweights",weights ,"\n")
+print("----------")
+
 
 # fit model
 history = model.fit(
@@ -200,6 +199,10 @@ print(f"checkpoints in {checkpoint_dir} ",os.listdir(checkpoint_dir))
 
 # path for saving
 keras_save_path= os.path.join(os.path.dirname(__file__),"keras_"+model_name,"model.keras")
+keras_save_dir = os.path.dirname(keras_save_path)
+
+if not os.path.exists(keras_save_dir):
+    os.makedirs(keras_save_dir)
 # save keras model
 model.save(keras_save_path)
 
@@ -212,7 +215,8 @@ print("model to be converted:",keras_model)
 tflite_model = convert_tflite_model(keras_model)
 
 # save tflite
-#save_tflite_model(tflite_model, './training/models/'+model_name, '/model.tflite')
+tflite_save_path = os.path.join(os.path.dirname(__file__),'training/models/'+model_name)
+save_tflite_model(tflite_model, tflite_save_path, 'model.tflite')
 
 print('')
 print('Initial training done.', flush=True)

@@ -1,4 +1,3 @@
-import tflite
 import tensorflow as tf
 import numpy as np
 
@@ -22,7 +21,7 @@ def save_tflite_model(tflite_model, save_dir, model_name):
 	print("Tflite save path:",save_path)
 	with open(save_path, "wb") as f:
 		f.write(tflite_model)
-	print("Tflite model saved to %s", save_dir)
+	print("Tflite model saved to :", save_dir)
  
 def test_tflite(tflite_model,X_test,y_test):
 	interpreter = tf.lite.Interpreter(model_content=tflite_model)
@@ -57,9 +56,9 @@ def test_tflite(tflite_model,X_test,y_test):
 				false_pos += 1
 			else:
 				false_neg += 1
-		# else:
-		#      print("lite model predicted: ", lite_predictions[0])
-		#      print("org model predicted:  ", model.predict(np.array( [X_test[i],]),verbose = 0)[0][0])
+    		#else:
+			#	print("lite model predicted: ", lite_predictions[0])
+			#	print("org model predicted:  ", tflite_model.predict(np.array( [X_test[i],]),verbose = 0)[0][0])
 			
 
 	# Compute accuracy

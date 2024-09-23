@@ -2,11 +2,20 @@
 
 ## from Scratch in /tensor_flow_wheat
 
-### Sequential model 
+cd ./tensor_flow_wheat
+
+conda env create -f ./tf_2.13_env.yml -n ENV_NAME
+
+conda activate ENV_NAME
+
+python ./wheat_sequential.py
+
+### Sequential model
 
 -train with wheat_sequential.py
 -uses Mobile Net V2 as base model
 -data found in sciebo in /Use cases/Landwirtschaft/wheat_disease_raw_data
+
 
 
 
@@ -30,18 +39,3 @@ conda deactivate
 conda env create -f ./wheat_dis_env.yaml -n ENV_NAME
 
 conda activate ENV_NAME
-
-### train.py : add full paths 
-python ./train.py --data-directory "./data" --out-directory "./output"
-
-
-### finding akida
-akida is imported in resources/libraries/ei_tensorflow/brainchip/edge_learning.py and model.py
-
-module load palma/2023a  GCCcore/12.3.0 Python/3.11.3    kein akida
-
-module load palma/2021a  GCCcore/10.3.0 Python/3.9.5     akida versions: 2.0.0, 2.0.1, 2.0.2, 2.0.3, 2.0.4, 2.0.5, 2.1.0,
-2.1.1, 2.1.2, 2.1.3, 2.1.4, 2.1.5, 2.1.6, 2.2.0, 2.2.1, 2.2.2
-
-module load palma/2022a  GCCcore/11.3.0 Python/3.10.4    kein akida
-module load palma/2022b  GCCcore/12.2.0 Python/3.10.8    kein akida
