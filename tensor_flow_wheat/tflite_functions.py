@@ -55,12 +55,11 @@ def test_tflite(tflite_model,X_test,y_test):
 			if predicted_label == 1:
 				false_pos += 1
 			else:
-				false_neg += 1
-    		#else:
-			#	print("lite model predicted: ", lite_predictions[0])
+				false_neg += 1 
+      		#else:
+           	#	print("lite model predicted: ", lite_predictions[0])
 			#	print("org model predicted:  ", tflite_model.predict(np.array( [X_test[i],]),verbose = 0)[0][0])
 			
-
 	# Compute accuracy
 	print("TensorFlow Lite model:")
 	accuracy = (true_pos+true_neg) / total_predictions

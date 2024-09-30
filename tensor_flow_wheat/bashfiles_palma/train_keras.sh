@@ -1,0 +1,40 @@
+#!/bin/bash
+
+#SBATCH --nodes=1
+
+#SBATCH --tasks-per-node=8
+
+#SBATCH --partition=gpua100
+
+#SBATCH --mem=16GB
+
+#SBATCH --gres=gpu:1
+
+#SBATCH --time=0-02:00:00
+
+#SBATCH --job-name=training
+
+#SBATCH --output=/scratch/tmp/kwundram/output/wheat_det/training/train_keras
+
+#SBATCH --mail-type=ALL
+
+#SBATCH --mail-user=kwundram@uni-muenster.de
+
+#load modules with available GPU support (this is an example, modify to your needs!)
+module purge
+module load palma/2023a  GCC/12.3.0  OpenMPI/4.1.5
+module load TensorFlow/2.13.0
+module load scikit-learn/1.3.1
+
+# place of code in palma
+wd=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/
+# training data path
+training_data=/scratch/tmp/kwundram/tiny_ai/data/dataset4_long999
+# test data path
+test_data=/scratch/tmp/kwundram/tiny_ai/test_data/Test_data
+# name given to model
+model_name=mobile_net_v2_80Epochs
+
+# test 
+python "$wd"/wheat_sequential.py --data_folder "$training_data" --model_name "$model_name" --batch_size 120 --epochs 80 --learning_rate 0.001
+

@@ -3,6 +3,7 @@
 notes.txt
 test_local.py
 /tensor_flow_wheat/training_checkpoints_1/
-/tensor_flow_wheat/training/models/keras_mobile_net_v2/
+/tensor_flow_wheat/training/
 /tensor_flow_wheat/__pycache__/
-/tensor_flow_wheat/keras_mobile_net_v2
+/tensor_flow_wheat/keras_models
+/tensor_flow_wheat/tf_lite_models
