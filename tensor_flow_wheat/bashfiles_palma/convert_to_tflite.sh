@@ -29,7 +29,7 @@ module load scikit-learn/1.3.1
 # place of code in palma
 wd=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/
 # path where keras model is saved. ends with .keras
-keras_savepath=D:\TinyAIoT\tinyai_repo_wheat\wheat_disease\tensor_flow_wheat\keras_models\mobile_net_v2_a\model.keras
+keras_savepath=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/keras_models/mobile_net_v2_80Epochs/model.keras
 # name given to tf lite model
 tfl_model_name=tfl_80Epochs
 

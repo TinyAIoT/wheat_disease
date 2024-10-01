@@ -1,7 +1,6 @@
 import tensorflow as tf
-import keras
 import argparse
-from keras import layers,utils
+from keras import utils
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='')
@@ -9,18 +8,14 @@ if __name__ == "__main__":
     parser.add_argument('--testdata_path', type=str, required=True, help='path to folder where test data is stored')
     parser.add_argument('--batch_size', type=int, required=True, help='batch size')
 
-
-    
     # parse arguments
     args = parser.parse_args()
     keras_save_path =args.keras_savepath
-    
     # image dim
     IMAGE_HEIGHT= 160
     IMAGE_WIDTH= 160
     # batch size
     BATCH_SIZE = args.batch_size
-    
     # get test data
     test_data_path =args.testdata_path
     test_ds = utils.image_dataset_from_directory(

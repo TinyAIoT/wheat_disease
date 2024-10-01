@@ -2,7 +2,6 @@ import math, requests
 import os
 from pathlib import Path
 import tensorflow as tf
-from tensorflow import Tensor
 from keras.callbacks import EarlyStopping
 from keras import Model, utils
 import numpy as np
@@ -13,11 +12,9 @@ from keras.layers import (
     Dense, InputLayer, Dropout, Flatten, Reshape)
 #from keras.optimizers.legacy import adadelta
 from keras.optimizers import Adam
-from keras.losses import categorical_crossentropy
 from sklearn.utils import class_weight
 # additional callbacks and tflite functions
 from callbacks import BatchLoggerCallback
-from tflite_functions import convert_tflite_model,save_tflite_model,test_tflite
 import argparse
 
 # create model, compile

@@ -30,8 +30,6 @@ module load scikit-learn/1.3.1
 wd=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/
 # training data path
 training_data=/scratch/tmp/kwundram/tiny_ai/data/dataset4_long999
-# test data path
-test_data=/scratch/tmp/kwundram/tiny_ai/test_data/Test_data
 # name given to model
 model_name=mobile_net_v2_80Epochs
 
