@@ -2,23 +2,34 @@
 
 ## from Scratch in /tensor_flow_wheat
 
+-data found in sciebo in /Use cases/Landwirtschaft/wheat_disease_raw_data
+
 cd ./tensor_flow_wheat
 
 conda env create -f ./tf_2.13_env.yml -n ENV_NAME
 
 conda activate ENV_NAME
 
-python ./wheat_sequential.py
+python ./train_keras_sequential.py ( with set flags)
 
-### Sequential model
+### Using Pama bash files
 
--train with wheat_sequential.py
--uses Mobile Net V2 as base model
--data found in sciebo in /Use cases/Landwirtschaft/wheat_disease_raw_data
+#### Train Keras model
 
+1. edit train_keras.sh (uses train_keras_sequential.py)
+2. sbatch path/to/bashfiles_palma/train_keras.sh
 
+#### Test Keras model
 
+1. edit test_keras.sh (uses test_keras_model.py)
+2. sbatch path/to/bashfiles_palma/test_keras.sh
 
+#### Convert Keras to tflite
+
+1. edit convert_to_tflite.sh (uses convert_to_tflite.py)
+2. sbatch path/to/bashfiles_palma/convert_to_tflite.sh
+
+------------------------------------------------------------------------------------------------
 ## Edge Impulse Copy
 ### data 
 Y_split already in /data. 
