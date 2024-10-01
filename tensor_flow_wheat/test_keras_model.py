@@ -3,10 +3,6 @@ import keras
 import argparse
 from keras import layers,utils
 
-
-
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--keras_savepath', type=str, required=True, help='path to folder where keras model is saved')

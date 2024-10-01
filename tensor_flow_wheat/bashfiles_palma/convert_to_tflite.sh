@@ -12,9 +12,9 @@
 
 #SBATCH --time=0-02:00:00
 
-#SBATCH --job-name=training
+#SBATCH --job-name=convert_to_tflite
 
-#SBATCH --output=/scratch/tmp/kwundram/output/wheat_det/training/train_keras
+#SBATCH --output=/scratch/tmp/kwundram/output/wheat_det/converting/convert_to_tflite
 
 #SBATCH --mail-type=ALL
 
@@ -28,13 +28,10 @@ module load scikit-learn/1.3.1
 
 # place of code in palma
 wd=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/
-# training data path
-training_data=/scratch/tmp/kwundram/tiny_ai/data/dataset4_long999
-# test data path
-test_data=/scratch/tmp/kwundram/tiny_ai/test_data/Test_data
-# name given to model
-model_name=mobile_net_v2_80Epochs
+# path where keras model is saved. ends with .keras
+keras_savepath=D:\TinyAIoT\tinyai_repo_wheat\wheat_disease\tensor_flow_wheat\keras_models\mobile_net_v2_a\model.keras
+# name given to tf lite model
+tfl_model_name=tfl_80Epochs
 
 # test 
-python "$wd"/train_keras_sequential.py --data_folder "$training_data" --model_name "$model_name" --batch_size 120 --epochs 80 --learning_rate 0.001
-
+python "$wd"/convert_to_tflite.py --keras_savepath "$keras_savepath" --tf_lite_modelname "$tfl_model_name"

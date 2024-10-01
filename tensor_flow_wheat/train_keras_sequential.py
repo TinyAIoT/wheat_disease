@@ -230,20 +230,8 @@ if __name__ == "__main__":
     # save keras model
     model.save(keras_save_path)
     
-    # keras model is created
-    # --------------------------------
-
-    # load model after saving
-    keras_model = tf.keras.models.load_model(keras_save_path)
-
-    # convert tflite
-    print("model to be converted:",keras_model)
-    tflite_model = convert_tflite_model(keras_model)
-
-    # save tflite
-    tflite_save_path = os.path.join(os.path.dirname(__file__),'tf_lite_models',model_name)
-    save_tflite_model(tflite_model, tflite_save_path, 'model.tflite')
-
     print('')
-    print('Initial training done.', flush=True)
-
+    print('Initial training done. \n', flush=True)
+    print('Keras model saved to .', keras_save_path, flush=True)
+    
+    # keras model is created
