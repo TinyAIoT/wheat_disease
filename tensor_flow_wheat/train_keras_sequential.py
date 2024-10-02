@@ -15,10 +15,14 @@ from keras.optimizers import Adam
 from sklearn.utils import class_weight
 # additional callbacks and tflite functions
 from callbacks import BatchLoggerCallback
+from sklearn.model_selection import KFold
 import argparse
 
 # create model, compile
 # change model_name if necessary
+
+# Define the K-fold Cross Validator
+
 
 def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name):
     model = Sequential()
@@ -74,6 +78,7 @@ if __name__ == "__main__":
     parser.add_argument('--learning_rate', type=float, required=True, help='learning rate')
     parser.add_argument('--patience', type=int, required=False, help='patience for early stopping')
     parser.add_argument('--min_delta', type=float, required=False, help='mind_delta for early stopping')
+    parser.add_argument('--num_folds', type=int, required=False, help='number of folds for kfold cross validation')
 
 
     # parse arguments
@@ -150,74 +155,81 @@ if __name__ == "__main__":
     
     train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
     val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
-    #class_names = train_ds.class_names
+    
     num_classes = len(set_class_names)
     print("num_classes",num_classes)
-
-    # create model with prev. defined function
-    model=create_model(INPUT_SHAPE,base_model,num_classes,False,model_name)
-
-
-    # train_sample_count ?
-    print("card",train_ds.cardinality().numpy())
-
-    train_sample_count = train_ds.cardinality().numpy()
-    train_sample_count = math.ceil(train_sample_count) 
     # callbacks
     model_callbacks =[]
     # BatchLoggerCallback
     model_callbacks.append(BatchLoggerCallback(BATCH_SIZE, train_sample_count, epochs=EPOCHS))
     
-    # apply early stopping
-    # min_delta parsed
-    min_d = args.min_delta or 0.002
-    print(f"min_delta for early stopping: {min_d} \n")
-    # patience parsed
-    patience=args.patience or 10
-    print(f"patience for early stopping: {patience} \n")
-    # append early stopping
-    model_callbacks.append(EarlyStopping(
-        monitor='val_accuracy',    # Monitor validation accuracy
-        min_delta=min_d ,           # Minimum change to qualify as an improvement
-        patience=patience,               # Stop after 5 epochs without improvement
-        verbose=1,                 # Print messages
-        restore_best_weights=True  # Restore model weights from the epoch with the best value of the monitored quantity.
-    ))
+    # Cross Validation
+    num_folds = args.num_folds
+    kfold = KFold(n_splits=num_folds, shuffle=True)
+    target_train = np.concatenate([y for x, y in train_ds], axis=0)
+    input_train = np.concatenate([x for x, y in train_ds], axis=0)
+    target_val = np.concatenate([y for x, y in val_ds], axis=0)
+    input_val = np.concatenate([x for x, y in val_ds], axis=0)
     
-    # Create a callback that saves the model's weights
-    checkpoint_path = os.path.join(os.path.dirname(__file__),"training_checkpoints",model_name,"cp-{epoch:04d}.weights.h5")
-    checkpoint_dir = os.path.dirname(checkpoint_path)
-    print("checkpoint_path",checkpoint_path)
+    # Merge inputs and targets
+    inputs = np.concatenate((input_train, input_val), axis=0)
+    targets = np.concatenate((target_train, target_val), axis=0)
+    
+    # K-fold Cross Validation model evaluation
+    fold_no = 1
+    for train, test in kfold.split(inputs, targets):
+        # create model with prev. defined function
+        model=create_model(INPUT_SHAPE,base_model,num_classes,False,model_name)
 
-    if not os.path.exists(checkpoint_dir):
-        os.makedirs(checkpoint_dir)
-    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
-                                                    save_weights_only=True,
-                                                    monitor="val_loss",
-                                                    verbose=1,
-                                                    save_freq="epoch",
-                                                    save_best_only=True)
-    model_callbacks.append(cp_callback)
 
-    model.summary()
-    # class weights
-    print("np.unique(y_train):",np.unique(y_train))
-    weights = class_weight.compute_class_weight('balanced',
-                                                    classes= np.unique(y_train),
-                                                    y= y_train)
-    weights = {i : weights[i] for i in range(5)}
-    print("classweights",weights ,"\n")
-    print("----------")
+        # train_sample_count ?
+        print("card",train_ds.cardinality().numpy())
 
-    # fit model
-    history = model.fit(
-    train_ds,
-    validation_data=val_ds,
-    epochs=EPOCHS,    
-    class_weight=weights,
-    callbacks=model_callbacks
-    )
-    print(f"checkpoints in {checkpoint_dir} ",os.listdir(checkpoint_dir))
+        train_sample_count = train_ds.cardinality().numpy()
+        train_sample_count = math.ceil(train_sample_count) 
+        
+        # apply early stopping
+        # min_delta parsed
+        min_d = args.min_delta or 0.002
+        print(f"min_delta for early stopping: {min_d} \n")
+        # patience parsed
+        patience=args.patience or 10
+        print(f"patience for early stopping: {patience} \n")
+        # append early stopping
+        model_callbacks.append(EarlyStopping(
+            monitor='val_accuracy',    # Monitor validation accuracy
+            min_delta=min_d ,           # Minimum change to qualify as an improvement
+            patience=patience,               # Stop after 5 epochs without improvement
+            verbose=1,                 # Print messages
+            restore_best_weights=True  # Restore model weights from the epoch with the best value of the monitored quantity.
+        ))
+        
+        model.summary()
+        # class weights
+        print("np.unique(y_train):",np.unique(y_train))
+        weights = class_weight.compute_class_weight('balanced',
+                                                        classes= np.unique(y_train),
+                                                        y= y_train)
+        weights = {i : weights[i] for i in range(5)}
+        print("classweights",weights ,"\n")
+        print("----------")
+
+        # fit model
+        history = model.fit(
+        train_ds,
+        validation_data=val_ds,
+        epochs=EPOCHS,    
+        class_weight=weights,
+        callbacks=model_callbacks
+        )
+        # Generate generalization metrics
+        scores = model.evaluate(inputs[test], targets[test], verbose=0)
+        print(f'Score for fold {fold_no}: {model.metrics_names[0]} of {scores[0]}; {model.metrics_names[1]} of {scores[1]*100}%')
+        acc_per_fold.append(scores[1] * 100)
+        loss_per_fold.append(scores[0])
+
+        # Increase fold number
+        fold_no = fold_no + 1
 
     # path for saving
     keras_save_path= os.path.join(os.path.dirname(__file__),"keras_models",model_name,"model.keras")

@@ -1,6 +1,9 @@
 import tensorflow as tf
+from tensorflow import math
 import argparse
 from keras import utils
+import numpy as np
+from sklearn.metrics import confusion_matrix
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='')
@@ -28,7 +31,23 @@ if __name__ == "__main__":
     )
     print(test_ds)
 
+    y_test = np.concatenate([y for x, y in test_ds], axis=0)
+    
+    X_test = np.concatenate([x for x, y in test_ds], axis=0)
+    #print(X_test[0])
+    
     keras_model = tf.keras.models.load_model(keras_save_path)
+    print(keras_model.summary())
     print("Evaluate on test data")
-    results = keras_model.evaluate(test_ds, batch_size=BATCH_SIZE, return_dict=True)
+    results = keras_model.evaluate(X_test, y_test,batch_size=BATCH_SIZE, return_dict=True)
+    print("test results: \n")
     print(results)
+    #Predict
+    y_prediction = keras_model.predict(X_test,batch_size=1)
+    y_prediction = np.argmax (y_prediction,axis=1)
+    
+    #print(y_prediction)
+    #Create confusion matrix and normalizes it over predicted (columns)
+    confusion_m = confusion_matrix(y_test, y_prediction,normalize="pred")
+    print("Confusion Matrix : \n")
+    print(confusion_m)
