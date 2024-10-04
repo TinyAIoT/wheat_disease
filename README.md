@@ -12,7 +12,7 @@ conda activate ENV_NAME
 
 python ./train_keras_sequential.py ( with set flags)
 
-### Using Pama bash files
+### Using Palma bash files
 
 #### Train Keras model
 

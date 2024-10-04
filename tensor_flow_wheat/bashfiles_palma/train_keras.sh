@@ -29,10 +29,10 @@ module load scikit-learn/1.3.1
 # place of code in palma
 wd=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/
 # training data path
-training_data=/scratch/tmp/kwundram/tiny_ai/data/dataset4_long999
+training_data=/scratch/tmp/kwundram/tiny_ai/data/ds4_with_combined
 # name given to model
-model_name=mobile_net_v2_80Epochs
+model_name=mobn_v2_60Epochs
 
 # test 
-python "$wd"/train_keras_sequential.py --data_folder "$training_data" --model_name "$model_name" --batch_size 120 --epochs 80 --learning_rate 0.001
+python "$wd"/train_keras_sequential.py --data_folder "$training_data" --model_name "$model_name" --batch_size 120 --epochs 60 --learning_rate 0.001
 

@@ -9,7 +9,7 @@ from keras.models import Sequential
 from keras.applications import MobileNetV2
 #from keras import layers, metrics
 from keras.layers import (
-    Dense, InputLayer, Dropout, Flatten, Reshape)
+    Dense, InputLayer, Dropout, Flatten, Reshape,RandomFlip,RandomRotation,Resizing,Rescaling,Conv2D)
 #from keras.optimizers.legacy import adadelta
 from keras.optimizers import Adam
 from sklearn.utils import class_weight
@@ -20,16 +20,18 @@ import argparse
 # create model, compile
 # change model_name if necessary
 
-def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name):
+def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name,image_height,image_width):
     model = Sequential()
     model.add(InputLayer(input_shape=input_shape, name='x_input'))
     # Don't include the base model's top layers
     last_layer_index = -3
     model.add(Model(inputs=base_model.inputs, outputs=base_model.layers[last_layer_index].output))
+    model.add(RandomRotation(0.2))
+    model.add(RandomFlip("horizontal_and_vertical"))
+    model.add(Rescaling(1./255))
     model.add(Reshape((-1, model.layers[-1].output.shape[3])))
-
     # neurons and activation
-    model.add(Dense(18, activation='relu'))
+    #model.add(Conv2D(16, 3, padding='same', activation='relu'))
     # dropout
     model.add(Dropout(0.2))
     model.add(Flatten())
@@ -146,7 +148,7 @@ if __name__ == "__main__":
     # Autotune
     AUTOTUNE = tf.data.AUTOTUNE
     # image augmentation
-    #train_ds = train_ds.map(augment_image, num_parallel_calls=AUTOTUNE)
+    train_ds = train_ds.map(augment_image, num_parallel_calls=AUTOTUNE)
     
     train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
     val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
@@ -155,7 +157,7 @@ if __name__ == "__main__":
     print("num_classes",num_classes)
 
     # create model with prev. defined function
-    model=create_model(INPUT_SHAPE,base_model,num_classes,False,model_name)
+    model=create_model(INPUT_SHAPE,base_model,num_classes,False,model_name,160,160)
 
 
     # train_sample_count ?
