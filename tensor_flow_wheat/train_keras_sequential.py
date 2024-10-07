@@ -4,7 +4,7 @@ from pathlib import Path
 import tensorflow as tf
 from keras.callbacks import EarlyStopping
 from keras import Model, utils
-from keras.metrics import SparseCategoricalAccuracy
+from keras.metrics import SparseCategoricalAccuracy,Recall,Precision
 import numpy as np
 from keras.models import Sequential
 from keras.applications import MobileNetV2
@@ -37,10 +37,12 @@ def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name,
     model.add(Dropout(0.2))
     model.add(Flatten())
     model.add(Dense(num_classes, activation='softmax'))
+    
     # compile
     model.compile(optimizer=Adam(learning_rate=LEARNING_RATE),
                 loss=tf.keras.losses.SparseCategoricalCrossentropy(),
                 weighted_metrics=[SparseCategoricalAccuracy()])
+                #,Recall(name="recall"),,Precision(name="precision")])
                 #metrics=['accuracy'])
     # plot model to png
     if plot_model:

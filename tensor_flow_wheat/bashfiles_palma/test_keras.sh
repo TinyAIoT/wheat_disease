@@ -18,7 +18,7 @@
 
 #SBATCH --mail-user=kwundram@uni-muenster.de
 
-#load modules with available GPU support (this is an example, modify to your needs!)
+#load modules 
 module purge
 module load palma/2023a  GCC/12.3.0  OpenMPI/4.1.5
 module load TensorFlow/2.13.0
