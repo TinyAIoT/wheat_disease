@@ -4,13 +4,11 @@
 
 #SBATCH --tasks-per-node=8
 
-#SBATCH --partition=gpua100
+#SBATCH --partition=normal
 
 #SBATCH --mem=16GB
 
-#SBATCH --gres=gpu:1
-
-#SBATCH --time=0-02:00:00
+#SBATCH --time=0-01:00:00
 
 #SBATCH --job-name=training
 

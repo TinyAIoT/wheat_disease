@@ -4,6 +4,7 @@ from pathlib import Path
 import tensorflow as tf
 from keras.callbacks import EarlyStopping
 from keras import Model, utils
+from keras.metrics import SparseCategoricalAccuracy
 import numpy as np
 from keras.models import Sequential
 from keras.applications import MobileNetV2
@@ -39,7 +40,8 @@ def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name,
     # compile
     model.compile(optimizer=Adam(learning_rate=LEARNING_RATE),
                 loss=tf.keras.losses.SparseCategoricalCrossentropy(),
-                metrics=['accuracy'])
+                weighted_metrics=[SparseCategoricalAccuracy()])
+                #metrics=['accuracy'])
     # plot model to png
     if plot_model:
         path = os.path.join(os.path.dirname(__file__),'keras_models',model_name)
@@ -119,14 +121,11 @@ if __name__ == "__main__":
     # batch size
     BATCH_SIZE =  args.batch_size
     # get dataset from directory
-    set_class_names = ["brown_rust","healthy","mildew","septoria","yellow_rust"]
-
-    #"inferred" (labels are generated from the directory structure)
-    #class_names 
+    set_class_names = ["brown_rust","healthy","mildew","septoria","yellow_rust"] 
     #"int": means that the labels are encoded as integers (e.g. for sparse_categorical_crossentropy loss).
     train_ds, val_ds = utils.image_dataset_from_directory(
         data_folder,
-        "inferred",
+        "inferred", #labels are generated from the directory structure
         "int",
         validation_split=0.2,
         subset="both",
