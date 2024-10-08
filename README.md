@@ -4,14 +4,6 @@
 
 -data found in sciebo in /Use cases/Landwirtschaft/wheat_disease_raw_data
 
-cd ./tensor_flow_wheat
-
-conda env create -f ./tf_2.13_env.yml -n ENV_NAME
-
-conda activate ENV_NAME
-
-python ./train_keras_sequential.py ( with set flags)
-
 ### Using Palma bash files
 
 #### Train Keras model
@@ -28,6 +20,17 @@ python ./train_keras_sequential.py ( with set flags)
 
 1. edit convert_to_tflite.sh (uses convert_to_tflite.py)
 2. sbatch path/to/bashfiles_palma/convert_to_tflite.sh
+
+
+### Local
+
+cd ./tensor_flow_wheat
+
+conda env create -f ./tf_2.13_env.yml -n ENV_NAME
+
+conda activate ENV_NAME
+
+python ./train_keras_sequential.py ( with set flags)
 
 ------------------------------------------------------------------------------------------------
 ## Edge Impulse Copy

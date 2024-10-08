@@ -18,7 +18,7 @@
 
 #SBATCH --mail-user=b.karic@uni-muenster.de
 
-#load modules with available GPU support (this is an example, modify to your needs!)
+#load modules 
 module purge
 module load palma/2023a  GCC/12.3.0  OpenMPI/4.1.5
 module load TensorFlow/2.13.0
@@ -28,9 +28,11 @@ module load scikit-learn/1.3.1
 wd=/scratch/tmp/b_kari02/wheat_disease/tensor_flow_wheat/
 # training data path
 training_data=/scratch/tmp/b_kari02/data/ds4_with_combined
+# epochs and learning rate
+epochs=60
+lr=0.0001
 # name given to model
-model_name=mobn_v2_60Epochs
-
+model_name=mobn_v2_"$epochs"_lr_"$lr"
 # test 
-python "$wd"/train_keras_sequential.py --data_folder "$training_data" --model_name "$model_name" --batch_size 120 --epochs 60 --learning_rate 0.001
+python "$wd"/train_keras_sequential.py --data_folder "$training_data" --model_name "$model_name" --batch_size 120 --epochs $epochs --learning_rate $lr
 

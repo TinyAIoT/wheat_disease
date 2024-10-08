@@ -9,3 +9,4 @@ test_local.py
 /tensor_flow_wheat/keras_models
 /tensor_flow_wheat/tf_lite_models
 /transfer-learning-weights/
+train_log.txt

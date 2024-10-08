@@ -19,7 +19,7 @@ if __name__ == "__main__":
     IMAGE_WIDTH= 160
     # batch size
     BATCH_SIZE = args.batch_size
-    # get test data
+    # get test data as dataset
     test_data_path =args.testdata_path
     test_ds = utils.image_dataset_from_directory(
         test_data_path,
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     keras_model = tf.keras.models.load_model(keras_save_path)
     print(keras_model.summary())
     print("Evaluate on test data")
-    results = keras_model.evaluate(X_test, y_test,batch_size=BATCH_SIZE, return_dict=True)
+    results = keras_model.evaluate(X_test, y_test, return_dict=True)
     print("test results: \n")
     print(results)
     #Predict

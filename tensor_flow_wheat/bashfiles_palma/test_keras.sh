@@ -4,13 +4,11 @@
 
 #SBATCH --tasks-per-node=8
 
-#SBATCH --partition=gpua100
+#SBATCH --partition=normal
 
 #SBATCH --mem=16GB
 
-#SBATCH --gres=gpu:1
-
-#SBATCH --time=0-02:00:00
+#SBATCH --time=0-01:00:00
 
 #SBATCH --job-name=testing_keras
 
@@ -20,7 +18,7 @@
 
 #SBATCH --mail-user=kwundram@uni-muenster.de
 
-#load modules with available GPU support (this is an example, modify to your needs!)
+#load modules 
 module purge
 module load palma/2023a  GCC/12.3.0  OpenMPI/4.1.5
 module load TensorFlow/2.13.0
