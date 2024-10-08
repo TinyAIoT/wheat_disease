@@ -74,6 +74,7 @@ if __name__ == "__main__":
     # arguments for model training
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--data_folder', type=str, required=True, help='path to folder with validation and training data')
+    parser.add_argument('--pt_weights', type=str, required=False, help='pretrained weights for base model. If not available, will download weights')
     parser.add_argument('--model_name', type=str, required=True, help='name of model. Also defines saving path')
     parser.add_argument('--batch_size', type=int, required=True, help='batch size')
     parser.add_argument('--epochs', type=int, required=True, help='number of epochs')
@@ -96,8 +97,9 @@ if __name__ == "__main__":
     IMAGE_WIDTH= 160
     # Input shape
     INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, 3)
+    
     # mobile_net weights
-    WEIGHTS_PATH = './transfer-learning-weights/keras/mobilenet_v2_weights_tf_dim_ordering_tf_kernels_1.0_160.h5'
+    WEIGHTS_PATH = args.pt_weights or './transfer-learning-weights/keras/mobilenet_v2_weights_tf_dim_ordering_tf_kernels_1.0_160.h5'
 
     # Download the model weights
     root_url = 'https://cdn.edgeimpulse.com/'

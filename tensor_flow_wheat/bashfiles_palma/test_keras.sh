@@ -35,5 +35,5 @@ for model in ${model_names[@]}; do
     # keras model path
     keras_model=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/keras_models/"$model"/model.keras
     # test 
-    python "$wd"/test_keras_model.py --keras_savepath "$keras_model" --testdata_path "$test_data" --batch_size 120
+    python "$wd"/test_keras_model.py --keras_savepath "$keras_model" --model_name "$model" --testdata_path "$test_data" --batch_size 120
 done

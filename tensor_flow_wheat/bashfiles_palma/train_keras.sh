@@ -26,6 +26,7 @@ module load scikit-learn/1.3.1
 
 # place of code in palma
 wd=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/
+weights=/scratch/tmp/kwundram/transfer-learning-weights/keras/mobilenet_v2_weights_tf_dim_ordering_tf_kernels_1.0_160.h5
 # training data path
 training_data=/scratch/tmp/kwundram/tiny_ai/data/ds4_with_combined
 # epochs and learning rate
@@ -37,5 +38,5 @@ model_name=mobn_v2_"$epochs"_lr_"$lr"
 min_d=0.001
 patience=10
 # test 
-python "$wd"/train_keras_sequential.py --data_folder "$training_data" --model_name "$model_name" --batch_size 120 --epochs $epochs --learning_rate $lr --min_delta $min_d --patience $patience
+python "$wd"/train_keras_sequential.py --data_folder "$training_data" --pt_weights "$weights" --model_name "$model_name" --batch_size 120 --epochs $epochs --learning_rate $lr --min_delta $min_d --patience $patience
 
