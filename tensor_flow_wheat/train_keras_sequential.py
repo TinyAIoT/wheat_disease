@@ -173,14 +173,14 @@ if __name__ == "__main__":
     
     # apply early stopping
     # min_delta parsed
-    min_d = args.min_delta or 0.002
+    min_d = args.min_delta or 0.001
     print(f"min_delta for early stopping: {min_d} \n")
     # patience parsed
     patience=args.patience or 10
     print(f"patience for early stopping: {patience} \n")
     # append early stopping
     model_callbacks.append(EarlyStopping(
-        monitor='val_accuracy',    # Monitor validation accuracy
+        monitor='val_sparse_categorical_accuracy',    # Monitor validation accuracy
         min_delta=min_d ,           # Minimum change to qualify as an improvement
         patience=patience,               # Stop after 5 epochs without improvement
         verbose=1,                 # Print messages

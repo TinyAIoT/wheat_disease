@@ -33,6 +33,9 @@ epochs=2
 lr=0.0011
 # name given to model
 model_name=mobn_v2_"$epochs"_lr_"$lr"
+# min delta and patience for early stopping
+min_d=0.001
+patience=10
 # test 
-python "$wd"/train_keras_sequential.py --data_folder "$training_data" --model_name "$model_name" --batch_size 120 --epochs $epochs --learning_rate $lr
+python "$wd"/train_keras_sequential.py --data_folder "$training_data" --model_name "$model_name" --batch_size 120 --epochs $epochs --learning_rate $lr --min_delta $min_d --patience $patience
 

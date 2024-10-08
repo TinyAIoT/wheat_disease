@@ -26,10 +26,14 @@ module load scikit-learn/1.3.1
 
 # place of code in palma
 wd=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/
-# keras model path
-keras_model=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/keras_models/mobile_net_v2_80Epochs/model.keras
 # test data path
 test_data=/scratch/tmp/kwundram/tiny_ai/test_data/Test_data
+# enter all model names that need to be tested
+model_names=("mobn_v2_150_lr_0.0011" "mobn_v2_150_lr_0.002" "mobn_v2_150_lr_0.0025" "mobn_v2_150_lr_0.01")
 
-# test 
-python "$wd"/test_keras_model.py --keras_savepath "$keras_model" --testdata_path "$test_data" --batch_size 120
+for model in ${model_names[@]}; do
+    # keras model path
+    keras_model=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/keras_models/"$model"/model.keras
+    # test 
+    python "$wd"/test_keras_model.py --keras_savepath "$keras_model" --testdata_path "$test_data" --batch_size 120
+done
