@@ -2,17 +2,17 @@
 
 #SBATCH --nodes=1
 
-#SBATCH --tasks-per-node=8
+#SBATCH --tasks-per-node=10
 
 #SBATCH --partition=normal
 
 #SBATCH --mem=16GB
 
-#SBATCH --time=0-01:00:00
+#SBATCH --time=0-02:00:00
 
 #SBATCH --job-name=training
 
-#SBATCH --output=/scratch/tmp/kwundram/output/wheat_det/training/train_keras
+#SBATCH --output=/scratch/tmp/kwundram/output/wheat_det/training/train_cross_val
 
 #SBATCH --mail-type=ALL
 
@@ -29,13 +29,16 @@ wd=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/
  # training data path
 training_data=/scratch/tmp/kwundram/tiny_ai/data/ds4_with_combined
 # epochs and learning rate
-epochs=2
+epochs=80
 lr=0.0011
+# Number of folds
+num_folds=6
 # name given to model
-model_name=mobn_v2_"$epochs"_lr_"$lr"
+model_name=mobn_v2_"$epochs"_lr_"$lr"_nf_"$num_folds"
 # min delta and patience for early stopping
 min_d=0.001
 patience=10
+
 # test 
-python "$wd"/train_keras_sequential.py --data_folder "$training_data" --pt_weights "$weights" --model_name "$model_name" --batch_size 120 --epochs $epochs --learning_rate $lr --min_delta $min_d --patience $patience
+python "$wd"/train_keras_crossv.py --data_folder "$training_data" --pt_weights "$weights" --model_name "$model_name" --batch_size 120 --epochs $epochs --learning_rate $lr --min_delta $min_d --patience $patience --num_folds $num_folds
 
