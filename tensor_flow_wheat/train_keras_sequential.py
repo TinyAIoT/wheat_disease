@@ -24,16 +24,14 @@ import argparse
 def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name,image_height,image_width):
     model = Sequential()
     model.add(InputLayer(input_shape=input_shape, name='x_input'))
-    # Don't include the base model's top layers
-    last_layer_index = -3
-    model.add(Model(inputs=base_model.inputs, outputs=base_model.layers[last_layer_index].output))
+    # rescaling, rotation and flip
+    model.add(Rescaling(1./127.5,offset=-1))
     model.add(RandomRotation(0.2))
     model.add(RandomFlip("horizontal_and_vertical"))
-    model.add(Rescaling(1./255))
+    # Don't include the base model's top layers
+    last_layer_index = -3
+    model.add(Model(inputs=base_model.inputs, outputs=base_model.layers[last_layer_index].output)) 
     model.add(Reshape((-1, model.layers[-1].output.shape[3])))
-    # neurons and activation
-    #model.add(Conv2D(16, 3, padding='same', activation='relu'))
-    # dropout
     model.add(Dropout(0.2))
     model.add(Flatten())
     model.add(Dense(num_classes, activation='softmax'))
