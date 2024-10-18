@@ -10,3 +10,4 @@ test_local.py
 /tensor_flow_wheat/tf_lite_models
 /transfer-learning-weights/
 train_log.txt
+tensor_flow_wheat/bashfiles_palma/transfer-learning-weights/
