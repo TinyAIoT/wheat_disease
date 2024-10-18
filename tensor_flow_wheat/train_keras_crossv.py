@@ -25,20 +25,18 @@ import argparse
 def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name,image_height,image_width):
     model = Sequential()
     model.add(InputLayer(input_shape=input_shape, name='x_input'))
+    # rescaling, rotation and flip
+    model.add(RandomRotation(0.2))
+    model.add(RandomFlip("horizontal_and_vertical"))
+    model.add(Rescaling(1./127.5,offset=-1))
     # Don't include the base model's top layers
     last_layer_index = -3
     model.add(Model(inputs=base_model.inputs, outputs=base_model.layers[last_layer_index].output))
-    model.add(RandomRotation(0.2))
-    model.add(RandomFlip("horizontal_and_vertical"))
-    model.add(Rescaling(1./255))
+    # reshape
     model.add(Reshape((-1, model.layers[-1].output.shape[3])))
-    # neurons and activation
-    #model.add(Conv2D(16, 3, padding='same', activation='relu'))
-    # dropout
     model.add(Dropout(0.2))
     model.add(Flatten())
     model.add(Dense(num_classes, activation='softmax'))
-    
     # compile
     model.compile(optimizer=Adam(learning_rate=LEARNING_RATE),
                 loss=tf.keras.losses.SparseCategoricalCrossentropy(),
@@ -227,9 +225,10 @@ if __name__ == "__main__":
         
         # Increase fold number
         fold_no = fold_no + 1
-    
+    # get index of best accuracy , +1 since fold number starts with 1
     best_accuracy = np.argmax(acc_per_fold)
     print(f"fold {best_accuracy+1} has best accuracy with {acc_per_fold[best_accuracy]}")
+    # get index of best loss
     best_loss = np.argmin(loss_per_fold)
     print(f"fold {best_loss+1} has best loss value with {loss_per_fold[best_loss]}")
     
@@ -249,5 +248,3 @@ if __name__ == "__main__":
     print('')
     print('Initial training done. \n', flush=True)
     print('Keras model saved to .', keras_save_path, flush=True)
-    
-    # keras model is created
