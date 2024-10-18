@@ -10,13 +10,9 @@
 
 #SBATCH --time=0-02:00:00
 
-#SBATCH --job-name=training
-
-#SBATCH --output=/scratch/tmp/kwundram/output/wheat_det/training/train_cross_val
+#SBATCH --job-name=training_cross_val
 
 #SBATCH --mail-type=ALL
-
-#SBATCH --mail-user=kwundram@uni-muenster.de
 
 #load modules 
 module purge
@@ -25,11 +21,11 @@ module load TensorFlow/2.13.0
 module load scikit-learn/1.3.1
 
 # place of code in palma
-wd=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/
+wd="$HOME"/tiny_ai_home/wheat_disease/tensor_flow_wheat/
  # training data path
-training_data=/scratch/tmp/kwundram/tiny_ai/data/ds4_with_combined
+training_data="$WORK"/tiny_ai/data/ds4_with_combined
 # epochs and learning rate
-epochs=80
+epochs=2
 lr=0.0011
 # Number of folds
 num_folds=6
