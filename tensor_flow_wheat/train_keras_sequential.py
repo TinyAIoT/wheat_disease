@@ -17,6 +17,7 @@ from sklearn.utils import class_weight
 # additional callbacks and tflite functions
 from callbacks import BatchLoggerCallback
 import argparse
+from sklearn.metrics import confusion_matrix
 
 # create model, compile
 # change model_name if necessary
@@ -79,7 +80,7 @@ if __name__ == "__main__":
     parser.add_argument('--learning_rate', type=float, required=True, help='learning rate')
     parser.add_argument('--patience', type=int, required=False, help='patience for early stopping')
     parser.add_argument('--min_delta', type=float, required=False, help='mind_delta for early stopping')
-
+    parser.add_argument('--test_model', type=bool, required=False, help='if true val dataset will be split again and model will be tested ')
 
     # parse arguments
     args = parser.parse_args()
@@ -91,8 +92,8 @@ if __name__ == "__main__":
     data_folder = args.data_folder
     print(f"Using data from {data_folder} \n")
     print("----------")
-    IMAGE_HEIGHT= 160
-    IMAGE_WIDTH= 160
+    IMAGE_HEIGHT= 320   
+    IMAGE_WIDTH= 320
     # Input shape
     INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, 3)
     
@@ -129,12 +130,22 @@ if __name__ == "__main__":
         data_folder,
         "inferred", #labels are generated from the directory structure
         "int",
-        validation_split=0.2,
+        validation_split=0.3,
         subset="both",
         seed=1337,
         image_size=(IMAGE_HEIGHT,IMAGE_WIDTH),
         batch_size=BATCH_SIZE,  
     )
+    # Autotune
+    AUTOTUNE = tf.data.AUTOTUNE
+    # if test_model == true val datset will be split to val and test
+    test_model = args.test_model or False
+    if test_model:
+        val_ds,test_ds=tf.keras.utils.split_dataset(
+        val_ds, left_size=0.7, right_size=0.3, shuffle=False, seed=32)
+        print("test_ds Cardinality: ",test_ds.cardinality().numpy())
+        test_ds = test_ds.cache().prefetch(buffer_size=AUTOTUNE)
+        print("test_ds Cardinality: ",test_ds.cardinality().numpy())
 
     # labels for getting class_names
     y_train =[]
@@ -146,20 +157,19 @@ if __name__ == "__main__":
     LEARNING_RATE =  args.learning_rate
     print(f"Using learning-rate: {LEARNING_RATE} ")
     #print(train_ds)
-    # Autotune
-    AUTOTUNE = tf.data.AUTOTUNE
+    
     # image augmentation
     train_ds = train_ds.map(augment_image, num_parallel_calls=AUTOTUNE)
     
     train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
     val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
+    
     #class_names = train_ds.class_names
     num_classes = len(set_class_names)
     print("num_classes",num_classes)
 
     # create model with prev. defined function
     model=create_model(INPUT_SHAPE,base_model,num_classes,False,model_name,160,160)
-
 
     # train_sample_count ?
     print("card",train_ds.cardinality().numpy())
@@ -235,3 +245,20 @@ if __name__ == "__main__":
     print('Keras model saved to .', keras_save_path, flush=True)
     
     # keras model is created
+    
+    if test_model:
+        y_test = np.concatenate([y for x, y in test_ds], axis=0)
+        X_test = np.concatenate([x for x, y in test_ds], axis=0)
+        keras_model = model #tf.keras.models.load_model(keras_save_path)       
+        print("Evaluate on test data")
+        results = keras_model.evaluate(X_test, y_test, return_dict=True)
+        print(f"test results for {model_name}: \n")
+        print(results)
+        #Predict
+        y_prediction = keras_model.predict(X_test,batch_size=1)
+        y_prediction = np.argmax (y_prediction,axis=1)
+
+        #Create confusion matrix and normalizes it over predicted (columns)
+        confusion_m = confusion_matrix(y_test, y_prediction,normalize="pred")
+        print(f"Confusion Matrix for {model_name}: \n")
+        print(confusion_m)

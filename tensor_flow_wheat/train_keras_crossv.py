@@ -75,8 +75,8 @@ if __name__ == "__main__":
     data_folder = args.data_folder
     print(f"Using data from {data_folder} \n")
     print("----------")
-    IMAGE_HEIGHT= 160
-    IMAGE_WIDTH= 160
+    IMAGE_HEIGHT= 320   
+    IMAGE_WIDTH= 320
     # Input shape
     INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, 3)
     
