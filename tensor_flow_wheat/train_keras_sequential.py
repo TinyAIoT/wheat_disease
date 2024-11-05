@@ -18,6 +18,7 @@ from sklearn.utils import class_weight
 from callbacks import BatchLoggerCallback
 import argparse
 from sklearn.metrics import confusion_matrix
+from datetime import datetime
 
 # create model, compile
 # change model_name if necessary
@@ -73,6 +74,7 @@ if __name__ == "__main__":
     # arguments for model training
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--data_folder', type=str, required=True, help='path to folder with validation and training data')
+    parser.add_argument('--save_path', type=str, required=True, help='saving path for keras models and checkpoints')
     parser.add_argument('--pt_weights', type=str, required=False, help='pretrained weights for base model. If not available, will download weights')
     parser.add_argument('--model_name', type=str, required=True, help='name of model. Also defines saving path')
     parser.add_argument('--batch_size', type=int, required=True, help='batch size')
@@ -81,6 +83,7 @@ if __name__ == "__main__":
     parser.add_argument('--patience', type=int, required=False, help='patience for early stopping')
     parser.add_argument('--min_delta', type=float, required=False, help='mind_delta for early stopping')
     parser.add_argument('--test_model', type=bool, required=False, help='if true val dataset will be split again and model will be tested ')
+    parser.add_argument('--image_dim', type=int, required=False, help='image dimension x. if set input shape will be (x,x,3)')
 
     # parse arguments
     args = parser.parse_args()
@@ -92,8 +95,8 @@ if __name__ == "__main__":
     data_folder = args.data_folder
     print(f"Using data from {data_folder} \n")
     print("----------")
-    IMAGE_HEIGHT= 320   
-    IMAGE_WIDTH= 320
+    IMAGE_HEIGHT= args.image_dim or 320   
+    IMAGE_WIDTH= args.image_dim or 320
     # Input shape
     INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, 3)
     
@@ -142,7 +145,7 @@ if __name__ == "__main__":
     test_model = args.test_model or False
     if test_model:
         val_ds,test_ds=tf.keras.utils.split_dataset(
-        val_ds, left_size=0.7, right_size=0.3, shuffle=False, seed=32)
+        val_ds, left_size=0.6, right_size=0.4, shuffle=False, seed=32)
         print("test_ds Cardinality: ",test_ds.cardinality().numpy())
         test_ds = test_ds.cache().prefetch(buffer_size=AUTOTUNE)
         print("test_ds Cardinality: ",test_ds.cardinality().numpy())
@@ -169,7 +172,7 @@ if __name__ == "__main__":
     print("num_classes",num_classes)
 
     # create model with prev. defined function
-    model=create_model(INPUT_SHAPE,base_model,num_classes,False,model_name,160,160)
+    model=create_model(INPUT_SHAPE,base_model,num_classes,False,model_name,IMAGE_HEIGHT,IMAGE_WIDTH)
 
     # train_sample_count ?
     print("card",train_ds.cardinality().numpy())
@@ -198,7 +201,8 @@ if __name__ == "__main__":
     ))
     
     # Create a callback that saves the model's weights
-    checkpoint_path = os.path.join(os.path.dirname(__file__),"training_checkpoints",model_name,"cp-{epoch:04d}.weights.h5")
+    save_path =args.save_path
+    checkpoint_path = os.path.join(save_path,"training_checkpoints",model_name,"cp-{epoch:04d}.weights.h5")
     checkpoint_dir = os.path.dirname(checkpoint_path)
     print("checkpoint_path",checkpoint_path)
 
@@ -231,9 +235,14 @@ if __name__ == "__main__":
     callbacks=model_callbacks
     )
     print(f"checkpoints in {checkpoint_dir} ",os.listdir(checkpoint_dir))
+    
+    # Get the current date and time
+    now = datetime.now()
+    formatted_date = now.strftime("%d.%m.%Y")  
+    print("Formatted date:", formatted_date)
 
     # path for saving
-    keras_save_path= os.path.join(os.path.dirname(__file__),"keras_models",model_name,"model.keras")
+    keras_save_path= os.path.join(save_path,"keras_models",formatted_date,model_name,"model.keras")
     keras_save_dir = os.path.dirname(keras_save_path)
     if not os.path.exists(keras_save_dir):
         os.makedirs(keras_save_dir)
@@ -255,7 +264,7 @@ if __name__ == "__main__":
         print(f"test results for {model_name}: \n")
         print(results)
         #Predict
-        y_prediction = keras_model.predict(X_test,batch_size=1)
+        y_prediction = keras_model.predict(X_test,batch_size=BATCH_SIZE)
         y_prediction = np.argmax (y_prediction,axis=1)
 
         #Create confusion matrix and normalizes it over predicted (columns)

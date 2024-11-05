@@ -12,13 +12,14 @@ if __name__ == "__main__":
     parser.add_argument('--testdata_path', type=str, required=True, help='path to folder where test data is stored')
     parser.add_argument('--batch_size', type=int, required=True, help='batch size')
     parser.add_argument('--print_summary', type=bool, required=False, help='if True, will print model summary. False on default')
+    parser.add_argument('--image_dim', type=int, required=False, help='image dimension x. if set input shape will be (x,x,3)')
 
     # parse arguments
     args = parser.parse_args()
     keras_save_path =args.keras_savepath
     # image dim
-    IMAGE_HEIGHT= 160
-    IMAGE_WIDTH= 160
+    IMAGE_HEIGHT= args.image_dim or 160
+    IMAGE_WIDTH= args.image_dim or 160
     # batch size
     BATCH_SIZE = args.batch_size
     # get test data as dataset
@@ -49,7 +50,7 @@ if __name__ == "__main__":
     print(f"test results for {model_name}: \n")
     print(results)
     #Predict
-    y_prediction = keras_model.predict(X_test,batch_size=1)
+    y_prediction = keras_model.predict(X_test,batch_size=args.batch_size)
     y_prediction = np.argmax (y_prediction,axis=1)
 
     #Create confusion matrix and normalizes it over predicted (columns)
