@@ -145,7 +145,7 @@ if __name__ == "__main__":
     test_model = args.test_model or False
     if test_model:
         val_ds,test_ds=tf.keras.utils.split_dataset(
-        val_ds, left_size=0.6, right_size=0.4, shuffle=False, seed=32)
+        val_ds, left_size=0.6, right_size=0.4, shuffle=True, seed=32)
         print("test_ds Cardinality: ",test_ds.cardinality().numpy())
         test_ds = test_ds.cache().prefetch(buffer_size=AUTOTUNE)
         print("test_ds Cardinality: ",test_ds.cardinality().numpy())
@@ -200,9 +200,14 @@ if __name__ == "__main__":
         restore_best_weights=True  # Restore model weights from the epoch with the best value of the monitored quantity.
     ))
     
+    # Get the current date and time
+    now = datetime.now()
+    formatted_date = now.strftime("%d.%m.%Y")  
+    print("Formatted date:", formatted_date)
+    
     # Create a callback that saves the model's weights
     save_path =args.save_path
-    checkpoint_path = os.path.join(save_path,"training_checkpoints",model_name,"cp-{epoch:04d}.weights.h5")
+    checkpoint_path = os.path.join(save_path,"training_checkpoints",formatted_date,model_name,"cp-{epoch:04d}.weights.h5")
     checkpoint_dir = os.path.dirname(checkpoint_path)
     print("checkpoint_path",checkpoint_path)
 
@@ -236,10 +241,7 @@ if __name__ == "__main__":
     )
     print(f"checkpoints in {checkpoint_dir} ",os.listdir(checkpoint_dir))
     
-    # Get the current date and time
-    now = datetime.now()
-    formatted_date = now.strftime("%d.%m.%Y")  
-    print("Formatted date:", formatted_date)
+    
 
     # path for saving
     keras_save_path= os.path.join(save_path,"keras_models",formatted_date,model_name,"model.keras")

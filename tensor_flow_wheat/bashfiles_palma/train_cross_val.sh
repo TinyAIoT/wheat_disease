@@ -6,7 +6,7 @@
 
 #SBATCH --partition=normal
 
-#SBATCH --mem=24GB
+#SBATCH --mem=64GB
 
 #SBATCH --time=0-02:00:00
 
@@ -31,10 +31,11 @@ training_data="$WORK"/tiny_ai/data/long_2023_999
 save_path="$WORK"/tiny_ai/results/
 time=`date +%d.%m.%Y-%H:%M:%S`
 # epochs and learning rate
-epochs=2
-lr=0.0005
+epochs=80
+lr=0.0015
 # Number of folds
 num_folds=3
+image_dim=660
 # name given to model
 model_name=mobn_v2_"$epochs"_lr_"$lr"_nf_"$num_folds"_t_"$time"_dim_"$image_dim"
 # min delta and patience for early stopping
@@ -42,7 +43,7 @@ min_d=0.001
 patience=10
 
 # test 
-python "$wd"/train_keras_crossv.py --data_folder "$training_data" --save_path "$save_path" --pt_weights "$weights" --model_name "$model_name" --batch_size 120 --epochs $epochs --learning_rate $lr --min_delta $min_d --patience $patience --num_folds $num_folds
+python "$wd"/train_keras_crossv.py --data_folder "$training_data" --save_path "$save_path" --pt_weights "$weights" --model_name "$model_name" --batch_size 120 --epochs $epochs --learning_rate $lr --min_delta $min_d --patience $patience --num_folds $num_folds --image_dim "$image_dim"
 
 echo "end of Training for Job "$SLURM_JOB_ID" :"
 echo `date +%Y.%m.%d-%H:%M:%S`

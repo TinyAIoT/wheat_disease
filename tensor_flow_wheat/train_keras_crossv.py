@@ -67,10 +67,18 @@ if __name__ == "__main__":
     parser.add_argument('--min_delta', type=float, required=False, help='mind_delta for early stopping')
     parser.add_argument('--num_folds', type=int, required=False, help='number of folds for k-fold cross validation')
     parser.add_argument('--image_dim', type=int, required=False, help='image dimension x. if set input shape will be (x,x,3)')
+    parser.add_argument('--zen3', type=bool, required=False, help='Set True, if you are using zen3 for config')
 
 
     # parse arguments
     args = parser.parse_args()
+    zen3=args.zen3 or False
+    if zen3:
+        #config = tf.ConfigProto()
+        config = tf.compat.v1.ConfigProto()
+        config.gpu_options.allow_growth = True
+        #sess = tf.Session(config=config)
+        sess = tf.compat.v1.Session(config=config)
         
     # Image dimensions
     # path_name
@@ -113,12 +121,12 @@ if __name__ == "__main__":
     # get dataset from directory
     set_class_names = ["brown_rust","healthy","mildew","septoria","yellow_rust"] 
     #"int": means that the labels are encoded as integers (e.g. for sparse_categorical_crossentropy loss).
-    train_ds = utils.image_dataset_from_directory(
+    train_ds, test_ds = utils.image_dataset_from_directory(
         data_folder,
         "inferred", #labels are generated from the directory structure
         "int",
         validation_split=0.2,
-        subset="training",
+        subset="both",
         seed=1337,
         image_size=(IMAGE_HEIGHT,IMAGE_WIDTH),
         batch_size=BATCH_SIZE,  
@@ -149,9 +157,15 @@ if __name__ == "__main__":
     train_ds = train_ds.map(augment_image, num_parallel_calls=AUTOTUNE)
     # prefetch
     train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
+    test_ds = test_ds.cache().prefetch(buffer_size=AUTOTUNE)
     
     targets = np.concatenate([y for x, y in train_ds], axis=0)
     inputs = np.concatenate([x for x, y in train_ds], axis=0)
+    
+    targets_test = np.concatenate([y for x, y in test_ds], axis=0)
+    inputs_test = np.concatenate([x for x, y in test_ds], axis=0)
+    
+    
     
     #class_names = train_ds.class_names
     num_classes = len(set_class_names)
@@ -185,13 +199,21 @@ if __name__ == "__main__":
     acc_per_fold =[]
     loss_per_fold=[]
     # save path is parent directory of both training checkpoints and keras models
+    
+    # Get the current date and time
+    now = datetime.now()
+    formatted_date = now.strftime("%d.%m.%Y")  
+    print("Formatted date:", formatted_date)
+    
     save_path =args.save_path
-    checkpoint_path = os.path.join(save_path,"training_checkpoints",model_name)
-    checkpoint_dir = os.path.dirname(checkpoint_path)
-    print("checkpoint_path",checkpoint_path)
+    checkpoint_path = os.path.join(save_path,"training_checkpoints",formatted_date,model_name)
+    print("checkpoint_path :",checkpoint_path)
+    
+    #checkpoint_dir = os.path.dirname(checkpoint_path)
+    #print("checkpoint_dir",checkpoint_dir)
 
-    if not os.path.exists(checkpoint_dir):
-        os.makedirs(checkpoint_dir)
+    if not os.path.exists(checkpoint_path):
+        os.makedirs(checkpoint_path)
     
     #model_callbacks.append(cp_callback)
     for train, val in kfold.split(inputs, targets):
@@ -199,6 +221,7 @@ if __name__ == "__main__":
         # store checkpoint with fold number and epoch info
         #checkpoint=os.path.join(checkpoint_path,f"fold_{fold_no}"+"cp-{epoch:04d}.weights.h5")
         checkpoint=os.path.join(checkpoint_path,f"fold_{fold_no}_"+"cp-best.weights.h5")
+        print("checkpoint:",checkpoint)
         cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint,
                                                     save_weights_only=True,
                                                     monitor="loss",
@@ -212,13 +235,15 @@ if __name__ == "__main__":
         history = model.fit(
         inputs[train],
         targets[train],
+        validation_data=(inputs[val],targets[val]),
         epochs=EPOCHS,
         batch_size=BATCH_SIZE,    
         class_weight=weights,
         callbacks=[model_callbacks,cp_callback]
         )
         # Generate generalization metrics
-        scores = model.evaluate(inputs[val], targets[val], verbose=0)
+        
+        scores = model.evaluate(inputs_test, targets_test, verbose=0)
         print(f'Score for fold {fold_no}: {model.metrics_names[0]} of {scores[0]}; {model.metrics_names[1]} of {scores[1]*100}%')
         acc_per_fold.append(scores[1] * 100)
         loss_per_fold.append(scores[0])
@@ -237,10 +262,7 @@ if __name__ == "__main__":
     print("best weights in:",best_weights_path)
     model.load_weights(best_weights_path)
     
-    # Get the current date and time
-    now = datetime.now()
-    formatted_date = now.strftime("%d.%m.%Y")  
-    print("Formatted date:", formatted_date)
+    
     
     # path for saving
     keras_save_path= os.path.join(save_path,"keras_models",formatted_date,model_name,"model.keras")
