@@ -34,7 +34,7 @@ epochs=4
 batch_size=80
 lr=0.0005
 test_model=True
-# image_dim
+# image_dim for MobileNetv2 : [96, 128, 160, 182, 224]
 image_dim=200
 # name given to model
 model_name=mobn_v2_"$epochs"_lr_"$lr"_bs_"$batch_size"_t_"$time"_dim_"$image_dim"

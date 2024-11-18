@@ -24,18 +24,20 @@ module load scikit-learn/1.3.1
 # place of code in palma
 WORK=/scratch/tmp/kwundram/
 wd="$HOME"/tiny_ai_home/wheat_disease/tensor_flow_wheat/
- # training data path
+
 #training_data="$WORK"/tiny_ai/data/ds4_with_combined
+# training data path
 training_data="$WORK"/tiny_ai/data/long_2023_999
+# save path for keras models and checkpoints
 save_path="$WORK"/tiny_ai/results/
 time=`date +%d.%m.%Y-%H:%M:%S`
 # epochs and learning rate
 epochs=4
 batch_size=5
 lr=0.0005
+# if true model will also be tested after training
 test_model=True
-TF_GPU_ALLOCATOR=cuda_malloc_async
-# image_dim
+# image_dim for MobileNetv2 : [96, 128, 160, 182, 224]
 image_dim=200
 # name given to model
 model_name=mobn_v2_"$epochs"_lr_"$lr"_bs_"$batch_size"_t_"$time"_dim_"$image_dim"

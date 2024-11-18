@@ -1,0 +1,3 @@
+
+18.11.2024:
+- suche nach models die höhere input size erlauben

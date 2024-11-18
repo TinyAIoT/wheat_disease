@@ -102,7 +102,7 @@ if __name__ == "__main__":
     
     # mobile_net weights
     WEIGHTS_PATH = args.pt_weights or './transfer-learning-weights/keras/mobilenet_v2_weights_tf_dim_ordering_tf_kernels_1.0_160.h5'
-
+    print("WEIGHTS_PATH : \n",WEIGHTS_PATH)
     # Download the model weights
     root_url = 'https://cdn.edgeimpulse.com/'
     p = Path(WEIGHTS_PATH)

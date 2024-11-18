@@ -2,21 +2,24 @@ import math, requests
 import os
 from pathlib import Path
 import tensorflow as tf
-from keras.callbacks import EarlyStopping
-from keras import Model, utils
-from keras.metrics import SparseCategoricalAccuracy,Recall,Precision
+from tensorflow.keras.applications import MobileNetV3Small
+from tensorflow.keras.applications import MobileNetV2
+#from keras.applications.mobilenet_v2 import MobileNetV2
+from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras import Model, utils
+from tensorflow.keras.metrics import SparseCategoricalAccuracy,Recall,Precision
 import numpy as np
-from keras.models import Sequential,load_model
-from keras.applications import MobileNetV2
+from tensorflow.keras.models import Sequential,load_model
+
 #from keras import layers, metrics
-from keras.layers import (
-    Dense, InputLayer, Dropout, Flatten, Reshape,RandomFlip,RandomRotation,Resizing,Rescaling,Conv2D)
+from tensorflow.keras.layers import (
+    Dense, InputLayer, Dropout, Flatten, Reshape,RandomFlip,RandomRotation,MaxPooling2D,Resizing,Rescaling,Conv2D)
 #from keras.optimizers.legacy import adadelta
-from keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam
 from sklearn.utils import class_weight
 # additional callbacks and tflite functions
 from callbacks import BatchLoggerCallback
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold,StratifiedGroupKFold
 import argparse
 from datetime import datetime
 
@@ -29,7 +32,7 @@ def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name,
     # rescaling, rotation and flip
     model.add(RandomRotation(0.2))
     model.add(RandomFlip("horizontal_and_vertical"))
-    model.add(Rescaling(1./127.5,offset=-1))
+    model.add(Rescaling(1./127.5,offset=-1)) # rescaling output shape same as input
     # Don't include the base model's top layers
     last_layer_index = -3
     model.add(Model(inputs=base_model.inputs, outputs=base_model.layers[last_layer_index].output))
@@ -57,8 +60,10 @@ if __name__ == "__main__":
     # arguments for model training
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--data_folder', type=str, required=True, help='path to folder with validation and training data')
+    parser.add_argument('--base_model', type=str, required=False, help='Set base model. e.g mobile_net_v2 or mobile_net_3')
     parser.add_argument('--save_path', type=str, required=True, help='saving path for keras models and checkpoints')
-    parser.add_argument('--pt_weights', type=str, required=False, help='pretrained weights for base model. If not available, will download weights')
+    parser.add_argument('--pt_weights',default=None, type=str, required=False, help='pretrained weights for base model. If not available, will download weights')
+    parser.add_argument('--num_classes', type=int, required=True, help='Number of classes')
     parser.add_argument('--model_name', type=str, required=True, help='name of model. Also defines saving path')
     parser.add_argument('--batch_size', type=int, required=True, help='batch size')
     parser.add_argument('--epochs', type=int, required=True, help='number of epochs')
@@ -80,46 +85,69 @@ if __name__ == "__main__":
         #sess = tf.Session(config=config)
         sess = tf.compat.v1.Session(config=config)
         
-    # Image dimensions
-    # path_name
+    # parsed model name
     model_name =args.model_name
     print(f"Creating model {model_name} ... \n")
+    # data folder
     data_folder = args.data_folder
     print(f"Using data from {data_folder} \n")
     print("----------")
-    IMAGE_HEIGHT= args.image_dim or 480   
-    IMAGE_WIDTH= args.image_dim or 480
+    # Image Dimsension
+    IMAGE_HEIGHT= args.image_dim or 224
+    IMAGE_WIDTH= args.image_dim or 224
     # Input shape
     INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, 3)
     
     # mobile_net weights
-    WEIGHTS_PATH = args.pt_weights or './transfer-learning-weights/keras/mobilenet_v2_weights_tf_dim_ordering_tf_kernels_1.0_160.h5'
-
-    # Download the model weights
-    root_url = 'https://cdn.edgeimpulse.com/'
-    p = Path(WEIGHTS_PATH)
-    if not p.exists():
-        print(f"Pretrained weights {WEIGHTS_PATH} unavailable; downloading...")
-        if not p.parent.exists():
-            p.parent.mkdir(parents=True)
-        weights_data = requests.get(root_url + WEIGHTS_PATH[2:]).content
-        with open(WEIGHTS_PATH, 'wb') as f:
-            f.write(weights_data)
-        print(f"Pretrained weights {WEIGHTS_PATH} unavailable; downloading OK")
-        print("")
-
-    # MobileNetV2
-    base_model = MobileNetV2(
-        input_shape = INPUT_SHAPE, alpha=1,
-        weights = WEIGHTS_PATH
-    )
-
+    weights_path = args.pt_weights or None
+    print("WEIGHTS_PATH : \n",weights_path)
+    
+    if weights_path == None:
+        weights="imagenet"
+    else:
+        weights=weights_path
+   
+    #class_names = train_ds.class_names
+    # get dataset from directory
+    #set_class_names = ["brown_rust","healthy","mildew","septoria","yellow_rust"] 
+    num_classes = args.num_classes
+    print("num_classes",num_classes)
+    
+    
+    base_model_name=args.base_model
+    print("base_model_name",base_model_name)
+    if base_model_name == "mobile_net_v2":
+        print("mobile_net_v2 as base model ... \n")
+        # MobileNetV2
+        # If using `weights` as `"imagenet"` with `include_top` as true, `classes` should be 1000.
+        base_model = MobileNetV2(
+            input_shape = INPUT_SHAPE,
+            alpha=1,
+            weights = weights,
+            include_top = True,
+            classes=num_classes, # only to be specified if include_top is True, and if no weights argument is specified
+            #pooling="avg" 
+        )
+        
+    if base_model_name == "mobile_net_v3":
+        print("mobile_net_v3 as base model ... \n")
+        # MobileNetV3
+        base_model = MobileNetV3Small(
+            input_shape = INPUT_SHAPE,
+            alpha=1,
+            dropout_rate=0.2,
+            weights = weights,
+            include_top = True,
+            #classes=num_classes, # only to be specified if include_top is True, and if no weights argument is specified
+        )
+        
+        
+    print("base_model",base_model)
     base_model.trainable = False
 
     # batch size
     BATCH_SIZE =  args.batch_size
-    # get dataset from directory
-    set_class_names = ["brown_rust","healthy","mildew","septoria","yellow_rust"] 
+    
     #"int": means that the labels are encoded as integers (e.g. for sparse_categorical_crossentropy loss).
     train_ds, test_ds = utils.image_dataset_from_directory(
         data_folder,
@@ -131,7 +159,6 @@ if __name__ == "__main__":
         image_size=(IMAGE_HEIGHT,IMAGE_WIDTH),
         batch_size=BATCH_SIZE,  
     )
-
     # labels for getting class_names
     y_train =[]
     for images, labels  in train_ds.unbatch():
@@ -165,12 +192,6 @@ if __name__ == "__main__":
     targets_test = np.concatenate([y for x, y in test_ds], axis=0)
     inputs_test = np.concatenate([x for x, y in test_ds], axis=0)
     
-    
-    
-    #class_names = train_ds.class_names
-    num_classes = len(set_class_names)
-    print("num_classes",num_classes)
-     
     # callbacks
     model_callbacks =[]
     # apply early stopping
@@ -192,7 +213,8 @@ if __name__ == "__main__":
     # Define the K-fold Cross Validator
     num_folds = args.num_folds
     print(f"Number of folds:{num_folds}")
-    kfold = KFold(n_splits=num_folds, shuffle=True)
+    #kfold = KFold(n_splits=num_folds, shuffle=True)
+    kfold = StratifiedGroupKFold(n_splits=num_folds,shuffle=True)
 
     # K-fold Cross Validation model evaluation
     fold_no = 1
