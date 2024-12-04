@@ -72,6 +72,10 @@ if __name__ == "__main__":
     # parse arguments
     args = parser.parse_args()
         
+    gpus = tf.config.list_physical_devices('GPU')
+    for gpu in gpus:
+        print("GPU-Name:", gpu.name, "  Type:", gpu.device_type)
+
     # Image dimensions
     # path_name
     model_name =args.model_name
@@ -113,17 +117,17 @@ if __name__ == "__main__":
     # get dataset from directory
     set_class_names = ["brown_rust","healthy","mildew","septoria","yellow_rust"] 
     #"int": means that the labels are encoded as integers (e.g. for sparse_categorical_crossentropy loss).
-    train_ds = utils.image_dataset_from_directory(
+    train_ds, test_ds = utils.image_dataset_from_directory(
         data_folder,
         "inferred", #labels are generated from the directory structure
         "int",
         validation_split=0.2,
-        subset="training",
+        subset="both",
         seed=1337,
         image_size=(IMAGE_HEIGHT,IMAGE_WIDTH),
         batch_size=BATCH_SIZE,  
     )
-
+    
     # labels for getting class_names
     y_train =[]
     for images, labels  in train_ds.unbatch():
@@ -149,6 +153,7 @@ if __name__ == "__main__":
     train_ds = train_ds.map(augment_image, num_parallel_calls=AUTOTUNE)
     # prefetch
     train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
+    test_ds = test_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
     
     targets = np.concatenate([y for x, y in train_ds], axis=0)
     inputs = np.concatenate([x for x, y in train_ds], axis=0)
@@ -189,16 +194,20 @@ if __name__ == "__main__":
     checkpoint_path = os.path.join(save_path,"training_checkpoints",model_name)
     checkpoint_dir = os.path.dirname(checkpoint_path)
     print("checkpoint_path",checkpoint_path)
-
-    if not os.path.exists(checkpoint_dir):
-        os.makedirs(checkpoint_dir)
+    Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
+    # if not os.path.exists(checkpoint_dir):
+    #     os.makedirs(checkpoint_dir)
     
+    y_test = np.concatenate([y for x, y in test_ds], axis=0)
+    X_test = np.concatenate([x for x, y in test_ds], axis=0)
+    # results = keras_model.evaluate(X_test, y_test, return_dict=True)
+
     #model_callbacks.append(cp_callback)
     for train, val in kfold.split(inputs, targets):
         
         # store checkpoint with fold number and epoch info
         #checkpoint=os.path.join(checkpoint_path,f"fold_{fold_no}"+"cp-{epoch:04d}.weights.h5")
-        checkpoint=os.path.join(checkpoint_path,f"fold_{fold_no}_"+"cp-best.weights.h5")
+        checkpoint=os.path.join(checkpoint_dir,f"fold_{fold_no}_"+"cp-best.weights.h5")
         cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint,
                                                     save_weights_only=True,
                                                     monitor="loss",
@@ -212,13 +221,14 @@ if __name__ == "__main__":
         history = model.fit(
         inputs[train],
         targets[train],
+        validation_data=(inputs[val], targets[val]),
         epochs=EPOCHS,
         batch_size=BATCH_SIZE,    
         class_weight=weights,
         callbacks=[model_callbacks,cp_callback]
         )
         # Generate generalization metrics
-        scores = model.evaluate(inputs[val], targets[val], verbose=0)
+        scores = model.evaluate(X_test, y_test, verbose=0)
         print(f'Score for fold {fold_no}: {model.metrics_names[0]} of {scores[0]}; {model.metrics_names[1]} of {scores[1]*100}%')
         acc_per_fold.append(scores[1] * 100)
         loss_per_fold.append(scores[0])

@@ -121,6 +121,11 @@ if __name__ == "__main__":
         input_shape = INPUT_SHAPE, alpha=1,
         weights = WEIGHTS_PATH
     )
+    
+    # base_model = tf.keras.applications.MobileNetV3Small(input_shape=INPUT_SHAPE,
+    #                                            include_top=False,
+    #                                            weights='imagenet',
+    #                                            include_preprocessing=False)
 
     base_model.trainable = False
 

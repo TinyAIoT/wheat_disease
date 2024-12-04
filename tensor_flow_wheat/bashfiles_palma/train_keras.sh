@@ -13,6 +13,8 @@
 
 #SBATCH --mail-type=ALL
 
+#SBATCH --mail-user=b_kari02@uni-muenster.de
+
 #SBATCH --output /scratch/tmp/%u/output/wheat_det/training/train_keras_%j.log
 
 #load modules 
@@ -22,20 +24,20 @@ module load TensorFlow/2.13.0
 module load scikit-learn/1.3.1
 
 # place of code in palma
-WORK=/scratch/tmp/kwundram/
-wd="$HOME"/tiny_ai_home/wheat_disease/tensor_flow_wheat/
+WORK=/scratch/tmp/b_kari02/
+wd="$HOME"/tiny_ai_home/wheat_disease/tensor_flow_wheat
  # training data path
 #training_data="$WORK"/tiny_ai/data/ds4_with_combined
 training_data="$WORK"/tiny_ai/data/long_2023_999
 save_path="$WORK"/tiny_ai/results/
 time=`date +%d.%m.%Y-%H:%M:%S`
 # epochs and learning rate
-epochs=4
+epochs=80
 batch_size=80
-lr=0.0005
+lr=0.0015
 test_model=True
 # image_dim
-image_dim=200
+image_dim=800
 # name given to model
 model_name=mobn_v2_"$epochs"_lr_"$lr"_bs_"$batch_size"_t_"$time"_dim_"$image_dim"
 # min delta and patience for early stopping
