@@ -117,10 +117,13 @@ if __name__ == "__main__":
         print("")
 
     # MobileNetV2
-    base_model = MobileNetV2(
-        input_shape = INPUT_SHAPE, alpha=1,
-        weights = WEIGHTS_PATH
+    base_model = tf.keras.applications.MobileNetV3Small(
+        input_shape = INPUT_SHAPE,
+        include_top=False,
+        weights='imagenet',
+        include_preprocessing=False
     )
+
 
     base_model.trainable = False
 
@@ -172,7 +175,7 @@ if __name__ == "__main__":
     print("num_classes",num_classes)
 
     # create model with prev. defined function
-    model=create_model(INPUT_SHAPE,base_model,num_classes,False,model_name,IMAGE_HEIGHT,IMAGE_WIDTH)
+    model=create_model(INPUT_SHAPE,base_model,num_classes,True,model_name,IMAGE_HEIGHT,IMAGE_WIDTH)
 
     # train_sample_count ?
     print("card",train_ds.cardinality().numpy())

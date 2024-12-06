@@ -4,7 +4,7 @@
 
 #SBATCH --tasks-per-node=10
 
-#SBATCH --partition=gpuexpress
+#SBATCH --partition=gpu2080
 # zen3 : try gpu2080, gpuexpress, gpu3090, gpua100, gputitanrtx, gpuhgx
 
 #SBATCH --gres=gpu:4
@@ -28,7 +28,7 @@ module load TensorFlow/2.11.0
 module load scikit-learn/1.1.2
 
 # place of code in palma
-wd="$HOME"/tiny_ai_home/wheat_disease/tensor_flow_wheat/
+wd="$WORK"/wheat_disease/tensor_flow_wheat/
  # training data path
 #training_data="$WORK"/tiny_ai/data/ds4_with_combined
 training_data="$WORK"/tiny_ai/data/long_2023_999
@@ -41,11 +41,11 @@ lr=0.001
 # number of classes
 num_classes=5
 # Number of folds
-num_folds=2
+num_folds=6
 # image_dim for MobileNetv2, if using pretrained weights: [96, 128, 160, 182, 224]
-image_dim=160
+image_dim=224
 # decrease image dim or batch_size when OOM (Out of Memory)
-batch_size=40
+batch_size=16
 # used base model : [mobile_net_v3,mobile_net_v2]
 base_model=mobile_net_v3
 # change weights accordingly to the base model
@@ -55,8 +55,8 @@ model_name="$base_model"_"$epochs"_lr_"$lr"_nf_"$num_folds"_t_"$time"_dim_"$imag
 # using zen3 partition ?
 zen3=True
 # min delta and patience for early stopping
-min_d=0.0005
-patience=5
+min_d=0.000001
+patience=10
 
 # run code with flags
 #sbatch --mail-user "kwundram@uni-muenster.de" $HOME/tiny_ai_home/wheat_disease/tensor_flow_wheat/bashfiles_palma/train_cross_val_zen3.sh
