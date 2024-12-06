@@ -11,3 +11,5 @@ test_local.py
 /transfer-learning-weights/
 train_log.txt
 tf_2.13_wheat.txt
+*.swp
+*.pyc

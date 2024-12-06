@@ -1,5 +1,6 @@
 import time
 import tensorflow as tf
+import logging
 
 class BatchLoggerCallback(tf.keras.callbacks.Callback):
     def __init__(self, batch_size, train_sample_count, epochs, interval_s = 10, ensure_determinism=False):
@@ -21,3 +22,25 @@ class BatchLoggerCallback(tf.keras.callbacks.Callback):
     # Reset the time the start of every epoch
     def on_epoch_end(self, epoch, logs=None):
         self.last_log_time = time.time()
+
+def scheduler(epoch, lr):
+  if epoch < 10:
+    return lr
+  else:
+    lr = lr * tf.math.exp(-0.1)
+    return lr 
+def get_lr_scheduler():
+    callback=tf.keras.callbacks.LearningRateScheduler(scheduler)
+    return callback
+       
+class LearningRatePrinter(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        # Print the learning rate after each epoch
+        lr = round(self.model.optimizer.lr.numpy(), 5)
+        logging.info(f"\n Epoch {epoch + 1}: Learning rate = {lr} \n")
+
+
+def get_callback_list(callbacks,model):
+    tf.keras.callbacks.CallbackList(
+    callbacks=callbacks, add_history=False, add_progbar=False, model=model
+)

@@ -1,81 +1,29 @@
-import math, requests
+import math
 import os
-from pathlib import Path
 import tensorflow as tf
 from keras.callbacks import EarlyStopping
-from keras import Model, utils
-from keras.metrics import SparseCategoricalAccuracy,Recall,Precision
+from keras import utils
 import numpy as np
-from keras.models import Sequential
-from keras.applications import MobileNetV2
-#from keras import layers, metrics
-from keras.layers import (
-    Dense, InputLayer, Dropout, Flatten, Reshape,RandomFlip,RandomRotation,Resizing,Rescaling,Conv2D)
-#from keras.optimizers.legacy import adadelta
-from keras.optimizers import Adam
 from sklearn.utils import class_weight
 # additional callbacks and tflite functions
-from callbacks import BatchLoggerCallback
 import argparse
 from sklearn.metrics import confusion_matrix
 from datetime import datetime
-
-# create model, compile
-# change model_name if necessary
-
-def create_model(input_shape,base_model,num_classes, plot_model:bool,model_name,image_height,image_width):
-    model = Sequential()
-    model.add(InputLayer(input_shape=input_shape, name='x_input'))
-    # rescaling, rotation and flip
-    model.add(Rescaling(1./127.5,offset=-1))
-    model.add(RandomRotation(0.2))
-    model.add(RandomFlip("horizontal_and_vertical"))
-    # Don't include the base model's top layers
-    last_layer_index = -3
-    model.add(Model(inputs=base_model.inputs, outputs=base_model.layers[last_layer_index].output)) 
-    model.add(Reshape((-1, model.layers[-1].output.shape[3])))
-    model.add(Dropout(0.2))
-    model.add(Flatten())
-    model.add(Dense(num_classes, activation='softmax'))
-    
-    # compile
-    model.compile(optimizer=Adam(learning_rate=LEARNING_RATE),
-                loss=tf.keras.losses.SparseCategoricalCrossentropy(),
-                weighted_metrics=[SparseCategoricalAccuracy()])
-                #,Recall(name="recall"),,Precision(name="precision")])
-                #metrics=['accuracy'])
-    # plot model to png
-    if plot_model:
-        path = os.path.join(os.path.dirname(__file__),'keras_models',model_name)
-        print(path)
-        if not os.path.exists(path):
-            os.makedirs(path)
-            
-        tf.keras.utils.plot_model(
-                model,
-                to_file=path+'/model.png',
-                show_shapes=True,
-            )
-    # print layer shapes
-    #for layer in model.layers:
-    #    print(layer.name ,layer.input_shape, "---->", layer.output_shape)
-    return model
-
-# Implements the data augmentation policy
-def augment_image(image, label):
-    
-    # Vary the brightness of the image
-    image = tf.image.random_brightness(image, max_delta=0.2)
-
-    return image, label
-
+import logging
+from tf_costum_utils import model_functions as mf
+from tf_costum_utils.callbacks import (BatchLoggerCallback,
+LearningRatePrinter,get_callback_list,get_lr_scheduler)
 
 if __name__ == "__main__":
     # arguments for model training
-    parser = argparse.ArgumentParser(description='')
+    parser = argparse.ArgumentParser(description='Train Sequential model with tensorflow')
     parser.add_argument('--data_folder', type=str, required=True, help='path to folder with validation and training data')
+    parser.add_argument('--base_model', type=str, required=False, help='Set base model. e.g mobile_net_v2 or mobile_net_3')
+    parser.add_argument('--include_top',default=False, type=bool, required=False, help='True if top layers of base model should be included')
+    parser.add_argument('--num_classes', type=int, required=True, help='Number of classes')
+    parser.add_argument('--dropout', type=float, required=True, help='dropout')
     parser.add_argument('--save_path', type=str, required=True, help='saving path for keras models and checkpoints')
-    parser.add_argument('--pt_weights', type=str, required=False, help='pretrained weights for base model. If not available, will download weights')
+    parser.add_argument('--pt_weights', type=str,default=None, required=False, help='pretrained weights for base model. If not available, will download weights')
     parser.add_argument('--model_name', type=str, required=True, help='name of model. Also defines saving path')
     parser.add_argument('--batch_size', type=int, required=True, help='batch size')
     parser.add_argument('--epochs', type=int, required=True, help='number of epochs')
@@ -84,45 +32,48 @@ if __name__ == "__main__":
     parser.add_argument('--min_delta', type=float, required=False, help='mind_delta for early stopping')
     parser.add_argument('--test_model', type=bool, required=False, help='if true val dataset will be split again and model will be tested ')
     parser.add_argument('--image_dim', type=int, required=False, help='image dimension x. if set input shape will be (x,x,3)')
+    parser.add_argument('--zen3', type=bool, required=False, help='Set True, if you are using zen3 for config')
 
+    logging.basicConfig(level = logging.INFO,format='%(asctime)s - %(levelname)s: %(message)s',datefmt='%H:%M:%S')
+    tf.get_logger().setLevel(logging.ERROR)
     # parse arguments
     args = parser.parse_args()
     
+    zen3=args.zen3 or False
+    if zen3:
+       sess = mf.zen3_config()
+       
     # Image dimensions
     # path_name
     model_name =args.model_name
-    print(f"Creating model {model_name} ... \n")
+    logging.info(f"Creating model {model_name} ... \n")
     data_folder = args.data_folder
-    print(f"Using data from {data_folder} \n")
-    print("----------")
+    logging.info(f"Using data from {data_folder} \n")
     IMAGE_HEIGHT= args.image_dim or 320   
     IMAGE_WIDTH= args.image_dim or 320
     # Input shape
     INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, 3)
     
-    # mobile_net weights
-    WEIGHTS_PATH = args.pt_weights or './transfer-learning-weights/keras/mobilenet_v2_weights_tf_dim_ordering_tf_kernels_1.0_160.h5'
-    print("WEIGHTS_PATH : \n",WEIGHTS_PATH)
-    # Download the model weights
-    root_url = 'https://cdn.edgeimpulse.com/'
-    p = Path(WEIGHTS_PATH)
-    if not p.exists():
-        print(f"Pretrained weights {WEIGHTS_PATH} unavailable; downloading...")
-        if not p.parent.exists():
-            p.parent.mkdir(parents=True)
-        weights_data = requests.get(root_url + WEIGHTS_PATH[2:]).content
-        with open(WEIGHTS_PATH, 'wb') as f:
-            f.write(weights_data)
-        print(f"Pretrained weights {WEIGHTS_PATH} unavailable; downloading OK")
-        print("")
+    base_model_name=args.base_model
+    weights_path = args.pt_weights or None
+    include_top=args.include_top
+    num_classes=args.num_classes
+    dropout=args.dropout
+    alpha=1.0
+    
+    base_model= mf.get_base_model(base_model_name,INPUT_SHAPE,
+                                weights_path,include_top,num_classes,dropout,alpha,None)
 
-    # MobileNetV2
-    base_model = MobileNetV2(
-        input_shape = INPUT_SHAPE, alpha=1,
-        weights = WEIGHTS_PATH
-    )
-
-    base_model.trainable = False
+    if weights_path is None:
+        logging.info("Not using pretrained weights. Training from scratch.")
+        train_base_model = True
+           
+    if include_top == True and weights_path=="imagenet":
+        logging.info("Setting number of classes to 1000 because include_top = True and weights = 'imagenet' ")
+        num_classes = 1000
+        train_base_model = False
+        
+    base_model.trainable = train_base_model
 
     # batch size
     BATCH_SIZE =  args.batch_size
@@ -144,6 +95,7 @@ if __name__ == "__main__":
     # if test_model == true val datset will be split to val and test
     test_model = args.test_model or False
     if test_model:
+        
         val_ds,test_ds=tf.keras.utils.split_dataset(
         val_ds, left_size=0.6, right_size=0.4, shuffle=True, seed=32)
         print("test_ds Cardinality: ",test_ds.cardinality().numpy())
@@ -158,21 +110,17 @@ if __name__ == "__main__":
     # epochs and learning rate
     EPOCHS =  args.epochs
     LEARNING_RATE =  args.learning_rate
-    print(f"Using learning-rate: {LEARNING_RATE} ")
+    logging.info(f"Using learning-rate: {LEARNING_RATE} ")
     #print(train_ds)
     
     # image augmentation
-    train_ds = train_ds.map(augment_image, num_parallel_calls=AUTOTUNE)
+    train_ds = train_ds.map(mf.augment_image, num_parallel_calls=AUTOTUNE)
     
     train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
     val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
-    
-    #class_names = train_ds.class_names
-    num_classes = len(set_class_names)
-    print("num_classes",num_classes)
 
     # create model with prev. defined function
-    model=create_model(INPUT_SHAPE,base_model,num_classes,False,model_name,IMAGE_HEIGHT,IMAGE_WIDTH)
+    model=mf.create_model(INPUT_SHAPE,base_model,LEARNING_RATE,num_classes,False,model_name)
 
     # train_sample_count ?
     print("card",train_ds.cardinality().numpy())
@@ -182,15 +130,15 @@ if __name__ == "__main__":
     # callbacks
     model_callbacks =[]
     # BatchLoggerCallback
-    model_callbacks.append(BatchLoggerCallback(BATCH_SIZE, train_sample_count, epochs=EPOCHS))
+    #model_callbacks.append(BatchLoggerCallback(BATCH_SIZE, train_sample_count, epochs=EPOCHS))
     
     # apply early stopping
     # min_delta parsed
     min_d = args.min_delta or 0.001
-    print(f"min_delta for early stopping: {min_d} \n")
+    logging.info(f"min_delta for early stopping: {min_d} \n")
     # patience parsed
     patience=args.patience or 10
-    print(f"patience for early stopping: {patience} \n")
+    logging.info(f"patience for early stopping: {patience} \n")
     # append early stopping
     model_callbacks.append(EarlyStopping(
         monitor='val_sparse_categorical_accuracy',    # Monitor validation accuracy
@@ -199,8 +147,14 @@ if __name__ == "__main__":
         verbose=1,                 # Print messages
         restore_best_weights=True  # Restore model weights from the epoch with the best value of the monitored quantity.
     ))
-    
-    # Get the current date and time
+    # learning rate printer
+    lr_printer=LearningRatePrinter()
+    model_callbacks.append(lr_printer)
+    # learning rate scheduler
+    lr_scheduler = get_lr_scheduler()
+    model_callbacks.append(lr_scheduler)
+
+    # Get the current date and time for path
     now = datetime.now()
     formatted_date = now.strftime("%d.%m.%Y")  
     print("Formatted date:", formatted_date)
@@ -239,10 +193,8 @@ if __name__ == "__main__":
     class_weight=weights,
     callbacks=model_callbacks
     )
-    print(f"checkpoints in {checkpoint_dir} ",os.listdir(checkpoint_dir))
+    #print(f"checkpoints in {checkpoint_dir} ",os.listdir(checkpoint_dir))
     
-    
-
     # path for saving
     keras_save_path= os.path.join(save_path,"keras_models",formatted_date,model_name,"model.keras")
     keras_save_dir = os.path.dirname(keras_save_path)
@@ -257,13 +209,14 @@ if __name__ == "__main__":
     
     # keras model is created
     
+    # Test model if true 
     if test_model:
         y_test = np.concatenate([y for x, y in test_ds], axis=0)
         X_test = np.concatenate([x for x, y in test_ds], axis=0)
         keras_model = model #tf.keras.models.load_model(keras_save_path)       
-        print("Evaluate on test data")
+        logging.info("Evaluating on test data")
         results = keras_model.evaluate(X_test, y_test, return_dict=True)
-        print(f"test results for {model_name}: \n")
+        logging.info(f"test results for {model_name}: \n")
         print(results)
         #Predict
         y_prediction = keras_model.predict(X_test,batch_size=BATCH_SIZE)
@@ -271,5 +224,5 @@ if __name__ == "__main__":
 
         #Create confusion matrix and normalizes it over predicted (columns)
         confusion_m = confusion_matrix(y_test, y_prediction,normalize="pred")
-        print(f"Confusion Matrix for {model_name}: \n")
-        print(confusion_m)
+        logging.info(f"Confusion Matrix for {model_name}: \n")
+        logging.info(confusion_m)
