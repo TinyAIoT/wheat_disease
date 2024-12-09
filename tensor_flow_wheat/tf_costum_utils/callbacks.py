@@ -1,6 +1,7 @@
 import time
 import tensorflow as tf
 import logging
+import random
 
 class BatchLoggerCallback(tf.keras.callbacks.Callback):
     def __init__(self, batch_size, train_sample_count, epochs, interval_s = 10, ensure_determinism=False):
@@ -24,10 +25,11 @@ class BatchLoggerCallback(tf.keras.callbacks.Callback):
         self.last_log_time = time.time()
 
 def scheduler(epoch, lr):
-  if epoch < 10:
+  if epoch < 5:
     return lr
   else:
-    lr = lr * tf.math.exp(-0.1)
+    random_number = random.uniform(0.001, 0.1)
+    lr = lr * tf.math.exp(random_number)
     return lr 
 def get_lr_scheduler():
     callback=tf.keras.callbacks.LearningRateScheduler(scheduler)

@@ -6,7 +6,7 @@ import tensorflow as tf
 #from keras.applications.mobilenet_v2 import MobileNetV2
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras import Model, utils
-from tensorflow.keras.metrics import SparseCategoricalAccuracy,Recall,Precision
+from tensorflow.keras.metrics import SparseCategoricalAccuracy
 import numpy as np
 from tensorflow.keras.models import Sequential,load_model
 
@@ -17,7 +17,7 @@ from tensorflow.keras.layers import (
 from tensorflow.keras.optimizers import Adam
 from sklearn.utils import class_weight
 # additional callbacks and tflite functions
-from sklearn.model_selection import KFold,StratifiedGroupKFold
+from sklearn.model_selection import KFold,StratifiedGroupKFold,StratifiedKFold
 import argparse
 from datetime import datetime
 import logging
@@ -53,7 +53,14 @@ if __name__ == "__main__":
     zen3=args.zen3 or False
     if zen3:
        sess = mf.zen3_config()
-        
+       
+    # epochs and learning rate
+    EPOCHS =  args.epochs
+    LEARNING_RATE =  args.learning_rate
+    #lr_list = [float(x) for x in args.lr_list.split(',')]
+    lr_list=mf.generate_floats_around(LEARNING_RATE,4,0.0002)
+    logging.info(f"lr_list {lr_list}")
+    
     # parsed model name
     model_name =args.model_name
     logging.info(f"Creating model {model_name} ... \n")
@@ -71,25 +78,20 @@ if __name__ == "__main__":
     weights_path = args.pt_weights or None
     logging.info(f"WEIGHTS_PATH : {weights_path} \n",)
     
-    #print("weights",model_weights)
-   
-    #class_names = train_ds.class_names
-    # get dataset from directory
-    #set_class_names = ["brown_rust","healthy","mildew","septoria","yellow_rust"] 
-    num_classes = args.num_classes
-    logging.info(f"num_classes: {num_classes}")
-    
     base_model_name=args.base_model
     include_top= args.include_top
     dropout = 0.2
-    alpha = 1.0
+    alpha = 1.3
+    logging.info(f"args.include_top {args.include_top}")
     logging.info(f"include top layers ? --> {include_top}")
-    if weights_path is None:
+    if weights_path is None and include_top==True :
         logging.info("Not using pretrained weights. Training from scratch.")
+        logging.info("Including top layers of base model")
+        num_classes = args.num_classes
+        logging.info(f"num_classes: {num_classes}")
         train_base_model = True
            
-    if include_top == True and weights_path=="imagenet":
-        logging.info("Setting number of classes to 1000 because include_top = True and weights = 'imagenet' ")
+    else:
         num_classes = 1000
         train_base_model = False
         
@@ -100,6 +102,7 @@ if __name__ == "__main__":
         
         
     #logging.info(f"base_model , {base_model}")
+    logging.info(f"Training base model ? --> {train_base_model}")
     base_model.trainable = train_base_model
 
     # batch size
@@ -129,9 +132,7 @@ if __name__ == "__main__":
     weights = {i : weights[i] for i in range(5)}
     logging.info(f"classweights: {weights} \n")
     
-    # epochs and learning rate
-    EPOCHS =  args.epochs
-    LEARNING_RATE =  args.learning_rate
+    
     logging.info(f"Using learning-rate: {LEARNING_RATE} ")
 
     # Autotune
@@ -159,31 +160,27 @@ if __name__ == "__main__":
     logging.info(f"patience for early stopping: {patience} \n")
     # append early stopping
     model_callbacks.append(EarlyStopping(
-        monitor='loss',    # Monitor validation accuracy
+        monitor='val_sparse_categorical_accuracy',    # Monitor validation accuracy
         min_delta=min_d ,           # Minimum change to qualify as an improvement
-        patience=patience,               # Stop after 5 epochs without improvement
+        patience=patience,
+        start_from_epoch=20,# Stop after 5 epochs without improvement
         verbose=1,                 # Print messages
         restore_best_weights=True  # Restore model weights from the epoch with the best value of the monitored quantity.
     ))
-    model_callbacks.append(LearningRatePrinter())
+
     
     # Define the K-fold Cross Validator
     num_folds = args.num_folds
     logging.info(f"Number of folds:{num_folds}")
     #kfold = KFold(n_splits=num_folds, shuffle=True)
-    kfold = StratifiedGroupKFold(n_splits=num_folds,shuffle=True)
+    kfold = StratifiedKFold(n_splits=num_folds,shuffle=True)
 
-    # K-fold Cross Validation model evaluation
-    fold_no = 1
-    acc_per_fold =[]
-    loss_per_fold=[]
-    # save path is parent directory of both training checkpoints and keras models
-    
     # Get the current date and time
     now = datetime.now()
     formatted_date = now.strftime("%d.%m.%Y")  
     print("Formatted date:", formatted_date)
     
+    # save path is parent directory of both training checkpoints and keras models
     save_path =args.save_path
     checkpoint_path = os.path.join(save_path,"training_checkpoints",formatted_date,model_name)
     logging.info(f"checkpoint_path : {checkpoint_path}")
@@ -195,60 +192,101 @@ if __name__ == "__main__":
         os.makedirs(checkpoint_path)
     
     #model_callbacks.append(cp_callback)
+    fold_no = 0
+    results = {}
     for train, val in kfold.split(inputs, targets):
+        results[fold_no] = {}
+        logging.info(f"len(val) {len(val)}")
         logging.info(f"Training fold {fold_no} .....")
         # store checkpoint with fold number and epoch info
         #checkpoint=os.path.join(checkpoint_path,f"fold_{fold_no}"+"cp-{epoch:04d}.weights.h5")
-        checkpoint=os.path.join(checkpoint_path,f"fold_{fold_no}_"+"cp-best.weights.h5")
-        print("checkpoint:",checkpoint)
-        cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint,
-                                                    save_weights_only=True,
-                                                    monitor="loss",
-                                                    verbose=1,
-                                                    save_freq="epoch",
-                                                    save_best_only=True)
-        
-        #tboard_path = os.path.join(save_path,f'logs/{fold_no}')
-        #print(tboard_path)
-        #tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tboard_path, histogram_freq=1)
-        # create model with prev. defined function
-        lr_printer=LearningRatePrinter()
-        model=mf.create_model(INPUT_SHAPE,base_model,LEARNING_RATE,num_classes,False,model_name)
-        lr_scheduler = get_lr_scheduler()
-        #callback_list=get_callback_list([model_callbacks,cp_callback,lr_scheduler,lr_printer],model)
-        # fit model
-        history = model.fit(
-        inputs[train],
-        targets[train],
-        validation_data=(inputs[val],targets[val]),
-        epochs=EPOCHS,
-        batch_size=BATCH_SIZE,    
-        class_weight=weights,
-        callbacks=[model_callbacks,cp_callback,lr_scheduler,lr_printer]
-        )
-        
-        # Generate generalization metrics
-        scores = model.evaluate(inputs_test, targets_test, verbose=0)
-        logging.info(f'Score for fold {fold_no}: {model.metrics_names[0]} of {scores[0]}; {model.metrics_names[1]} of {scores[1]*100}%')
-        acc_per_fold.append(scores[1] * 100)
-        loss_per_fold.append(scores[0])
-        
+        for lr in lr_list:
+            base_model.trainable = False
+            if lr <= 0:
+                logging.error(f"Learning rate is too small ! : {lr} \n Continue ...")
+                continue
+            logging.info(f"Training with Learning rate {lr} ... \n")
+            checkpoint=os.path.join(checkpoint_path,f"fold_{fold_no}_lr{lr}_"+"cp-best.weights.h5")
+            print("checkpoint:",checkpoint)
+            cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint,
+                                                        save_weights_only=True,
+                                                        monitor="val_loss",
+                                                        verbose=1,
+                                                        save_freq="epoch",
+                                                        save_best_only=True)
+            # create model with prev. defined function
+            model=mf.create_model(INPUT_SHAPE,base_model,num_classes,model_name)
+            # compile
+            model.compile(optimizer=Adam(learning_rate=lr),
+                        loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+                        weighted_metrics=[SparseCategoricalAccuracy()])
+            # fit model
+            history = model.fit(
+            inputs[train],
+            targets[train],
+            validation_data=(inputs[val],targets[val]),
+            epochs=EPOCHS,
+            batch_size=BATCH_SIZE,    
+            class_weight=weights,
+            callbacks=[model_callbacks]
+            )
+            # fine tune 
+            base_model.trainable = True
+            base_model_layer_count = len(base_model.layers)
+            # Let's take a look to see how many layers are in the base model
+            print("Number of layers in the base model: ", len(base_model.layers))
+
+            # Fine-tune from this layer onwards
+            fine_tune_at = base_model_layer_count//2
+            #Freeze all the layers before the `fine_tune_at` layer
+            for layer in base_model.layers[:fine_tune_at]:
+                layer.trainable = False
+                
+            model.compile(optimizer=Adam(learning_rate=lr/10),
+                            loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+                            weighted_metrics=[SparseCategoricalAccuracy()])
+            
+            trainable_var=len(model.trainable_variables)
+            logging.info(f"{trainable_var} trainable variables for fine tuning")
+            
+            fine_tune_epochs = 15
+            initial_epoch = len(history.epoch)
+            total_epochs =  initial_epoch + fine_tune_epochs
+            logging.info(f"Initial epoch for fine tuning : {initial_epoch}")
+            history_fine = model.fit(train_ds,
+                                    epochs=total_epochs,
+                                    initial_epoch=initial_epoch,
+                                    class_weight=weights,
+                                    validation_data=(inputs[val],targets[val]),
+                                    callbacks=[model_callbacks,cp_callback])
+            
+            # Generate generalization metrics
+            scores = model.evaluate(inputs_test, targets_test, verbose=0)
+            logging.info(f'Score for fold {fold_no} learning rate {lr}: {model.metrics_names[0]} of {scores[0]}; {model.metrics_names[1]} of {scores[1]*100}%')
+            accuracy = scores[1] * 100
+            loss = scores[0]
+            results[fold_no][lr] = {'accuracy': accuracy, 'loss': loss}
+            
         # Increase fold number
         fold_no +=1
-    # get index of best accuracy , +1 since fold number starts with 1
-    best_accuracy = np.argmax(acc_per_fold)
-    logging.info(f"fold {best_accuracy+1} has best accuracy with {acc_per_fold[best_accuracy]}")
-    # get index of best loss
-    best_loss = np.argmin(loss_per_fold)
-    logging.info(f"fold {best_loss+1} has best loss value with {loss_per_fold[best_loss]}")
+    logging.info(results)
+    # Search for the best model
+    best_fold = None
+    best_lr = None
+    best_accuracy = float('-inf')
+    for fold, lr_dict in results.items():
+        for lr, metrics in lr_dict.items():
+            logging.info(f"LR {lr} : {metrics} \n")
+            if metrics['accuracy'] > best_accuracy:  # Use accuracy or loss as criteria
+                best_accuracy = metrics['accuracy']
+                best_fold = fold
+                best_lr = lr
+    logging.info(f"fold {best_fold} has best accuracy with {results[best_fold][best_lr]}")
     
     # load best weights 
-    best_weights_path = os.path.join(checkpoint_path,f"fold_{best_accuracy+1}_"+"cp-best.weights.h5")
+    best_weights_path = os.path.join(checkpoint_path,f"fold_{best_fold}_lr{best_lr}_"+"cp-best.weights.h5")
     logging.info(f"best weights in: {best_weights_path}")
     model.load_weights(best_weights_path)
-    
-    
-    
     # path for saving
     keras_save_path= os.path.join(save_path,"keras_models",formatted_date,model_name,"model.keras")
     keras_save_dir = os.path.dirname(keras_save_path)

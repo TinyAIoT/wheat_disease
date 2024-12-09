@@ -4,7 +4,7 @@
 
 #SBATCH --tasks-per-node=8
 
-#SBATCH --partition=gpu2080
+#SBATCH --partition=gpua100
 # zen3 : try gpu2080, gpua100
 #gpuexpress, gpu3090, gputitanrtx, gpuhgx
 
@@ -38,25 +38,26 @@ training_data="$WORK"/tiny_ai/data/long_2023_999
 save_path="$WORK"/tiny_ai/results/
 time=`date +%d.%m.%Y_%H-%M-%S`
 # epochs and learning rate
-epochs=10
+epochs=3
 lr=0.01
 # number of classes
 num_classes=5
 # Number of folds
-num_folds=10
+num_folds=5
 # test ds size
 test_ds_size=0.2
 # image_dim for MobileNet: [96, 128, 160, 182, 224]
 # if no weights path given also other image dimensions can be used. e.g.: [320,480,640,800]
-image_dim=500
+image_dim=224
 # decrease image dim or batch_size when OOM (Out of Memory)
 batch_size=40
 # used base model : [mobile_net_v3_s,mobile_net_v3_l,mobile_net_v2,effnet_v2_b3]
 base_model=mobile_net_v3_s
-include_top=True
+include_top=0
 # change weights accordingly to the base model
 #weights="$WORK"/transfer-learning-weights/keras/mobilenet_v2_weights_tf_dim_ordering_tf_kernels_1.0_224.h5
 # name given to model
+weights="imagenet"
 model_name="$base_model"_"$epochs"_lr_"$lr"_nf_"$num_folds"_t_"$time"_dim_"$image_dim"
 # using zen3 partition ?
 zen3=True
@@ -64,8 +65,8 @@ zen3=True
 export TF_GPU_ALLOCATOR=cuda_malloc_async
 echo $TF_GPU_ALLOCATOR
 # min delta and patience for early stopping
-min_d=0.0005
-patience=5
+min_d=0.0001
+patience=10
 
 # run code with flags
 # sbatch --mail-user "kwundram@uni-muenster.de" $HOME/tiny_ai_home/wheat_disease/tensor_flow_wheat/bashfiles_palma/zen3/train_cross_val_zen3.sh

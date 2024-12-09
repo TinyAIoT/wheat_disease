@@ -23,7 +23,10 @@ jetzt möglich mobilnetv3 als base_model zu nutzen
 mobilnetV3 : image dim = 500 batch size = 40 seems to work. 
 
 -----------------------------------------------
+6.12 :
 
+goal is using pretrained weights or imagenet
+setting include top = false
 
 
 
