@@ -12,11 +12,7 @@
 
 #SBATCH --job-name=testing_keras
 
-#SBATCH --output=/scratch/tmp/kwundram/output/wheat_det/testing/test_keras
-
-#SBATCH --mail-type=ALL
-
-#SBATCH --mail-user=kwundram@uni-muenster.de
+#SBATCH --output /scratch/tmp/%u/output/wheat_det/testing/test_keras_%j.log
 
 #load modules 
 module purge
@@ -25,11 +21,10 @@ module load TensorFlow/2.13.0
 module load scikit-learn/1.3.1
 
 # place of code in palma
-wd=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/
+wd="$HOME"/wheat_disease/tensor_flow_wheat/
 # keras model path
-keras_model=/scratch/tmp/kwundram/tiny_ai/wheat_repo/wheat_disease/tensor_flow_wheat/keras_models/mobile_net_v2_80Epochs/model.keras
+keras_model="$WORK"/wheat_disease/tensor_flow_wheat/keras_models/mobn_v2_60Epochs/model.keras
 # test data path
-test_data=/scratch/tmp/kwundram/tiny_ai/test_data/Test_data
-
+test_data="$WORK"/tiny_ai/test_data/Test_data
 # test 
 python "$wd"/test_keras_model.py --keras_savepath "$keras_model" --testdata_path "$test_data" --batch_size 120

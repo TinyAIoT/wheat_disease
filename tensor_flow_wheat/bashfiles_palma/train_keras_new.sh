@@ -12,7 +12,7 @@
 
 #SBATCH --job-name=training
 
-#SBATCH --output /scratch/tmp/%u/output/wheat_det/testing/test_keras_%j.log
+#SBATCH --output /scratch/tmp/%u/output/wheat_det/training/train_keras_%j.log
 
 #load modules 
 module purge
@@ -21,7 +21,7 @@ module load TensorFlow/2.13.0
 module load scikit-learn/1.3.1
 
 # place of code in palma
-wd="$HOME"/wheat_disease/tensor_flow_wheat/
+wd="$HOME"/tiny_ai_home/wheat_disease/tensor_flow_wheat/
 # training data path
 training_data="$WORK"/data/ds4_with_combined
 # epochs and learning rate
