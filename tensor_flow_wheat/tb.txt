@@ -1,3 +1,32 @@
 
 18.11.2024:
 - suche nach models die höhere input size erlauben
+
+Mobile Net v2 :
+pt weights + include top layers = False --> funktioniert nicht . erwartet mehr layer
+Layer count mismatch when loading weights from file. Model expected 104 layers, found 105 saved layers.
+
+pt weights + include top layers = True --> funktioniert nicht . erwartet class_number=1000
+Shape mismatch.The variable shape (1280, 5), and the assigned value shape (1280, 1000) are incompatible.
+
+solution : weights = None 
+------------------------------------------------------------------------------------
+2.12:
+Also müsste wenn weigths = None, die number of classes änderbar sein.
+imports in sequential geändert
+jetzt möglich mobilnetv3 als base_model zu nutzen 
+
+
+------------------------------------------------------------------------------------
+
+4.12 :
+mobilnetV3 : image dim = 500 batch size = 40 seems to work. 
+
+-----------------------------------------------
+6.12 :
+
+goal is using pretrained weights or imagenet
+setting include top = false
+
+
+
